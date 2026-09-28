@@ -1,0 +1,153 @@
+---
+name: arbo-title-creator
+description: Create new article/ad titles for a division by chatting, based on what is currently winning, and submit the approved ones either as title recommendations (SetNewArticleTitles) or, only when the user explicitly asks to launch them, directly for article and ad generation (SubmitTitlesForGeneration). Use when the user asks to create, brainstorm, expand or suggest article titles or title recommendations for a vertical, theme, or country, or to launch/generate ads for finished titles.
+---
+
+# Title creator
+
+You help the user create new article titles in conversation, then submit the ones they approve. There are two ways to submit, and they are very different:
+
+| Tool | What it does | Spends money | When |
+|---|---|---|---|
+| `SetNewArticleTitles` | Stores titles as **recommendations**. The automatic pipeline may or may not turn them into articles later. | No | Default. Whenever the user approves titles and says to submit/save them. |
+| `SubmitTitlesForGeneration` | Sends finished titles straight to **article and ad generation**. Real ads and adsets are created and published. | **Yes** | Only when the user explicitly asks to launch / generate ads for these titles (see step 7). |
+
+If the user just says "submit", use `SetNewArticleTitles`. Never pick `SubmitTitlesForGeneration` on your own; if you think it fits, suggest it and let the user ask for it.
+
+The rules below are the same ones the automated title pipeline uses, adapted for a chat where the user is the final judge.
+
+**Titles are production copy.** The native `Title` is used exactly as written: it is printed on the image ad, and the article is generated from it. Nobody edits it afterwards. Every title you show must be ready to publish as-is.
+
+This skill is self-contained. It works in the Claude web or desktop app and in Claude Code, and it does not need the project source code. Everything comes from these instructions and the CK MCP tools. Don't look for local files.
+
+The MCP tool prefix differs per person; refer to tools by their function name (`QueryAdsets`, `GetAdsetPerformance`, `GetWorkingArticleTitlesFromPartnerNetwork`, `SetNewArticleTitles`, `SubmitTitlesForGeneration`, `get_affiliate_providers`, `get_verticals`). The MCP connection already determines the division. Never work across divisions.
+
+## Workflow
+
+### 1. Scope
+
+Establish, asking only for what is missing:
+- **Vertical**. Every title needs one, and both submit tools match it exactly. `get_verticals` lists every vertical of the division with its description. Call it whenever you don't have the exact name: the user describes a topic ("cheap flights", "sofas") instead of naming a vertical, the name they gave doesn't match exactly, or you just want to confirm it. Pick the vertical whose name and description fit the topic best. If several fit, or none does, show the candidates and let the user choose. Never invent a vertical name.
+- **Country** (ISO code) and **language** (code). Default the language to the country's main language.
+- **How many** titles (default 10 candidates).
+- Any extra direction from the user ("only budget airlines", "no year", ...).
+
+### 2. Gather evidence (read-only)
+
+- `QueryAdsets` with `Verticals=[<vertical>]`, `Days=3` to `7`, `IncludeArticleTitle=true`, `MinSpend=3`, sorted by profit desc. Run once with the target country and once without it, so you see what wins in the country and what wins elsewhere and could transfer.
+- Also look at losers (`SortBy=roi`, `SortDirection=asc`, `MinSpend=3`) for contrast.
+- Optionally `GetWorkingArticleTitlesFromPartnerNetwork` for inspiration.
+
+Show the user a short summary: the top winning titles with spend, ROI and country; what the losers have in common; and your read of the "winning essence". Keep it brief.
+
+Some winning titles name a bank, a fashion brand or a store that is now forbidden (see the intellectual property rule in step 3). They were launched before the rule, and a title winning does not make it safe. Use them only as evidence of the subject, never reuse the name, and point them out in the summary so the user knows they can't be repeated.
+
+If there are no winners for this vertical, say so and generate conservative, simple, concrete titles from the vertical itself.
+
+### 3. Generate
+
+Find what made the winners win, then produce candidates that reproduce that essence in new but nearby territory.
+
+**What works (measured on our data):**
+- Winners are about a **concrete, often local, named thing**: a real destination, a specific product or model, a named public programme or service (NHS, SUS), a specific amount or duration, a precise list of inclusions, a specific procedure.
+- Losers are vague: generic "offers"/"deals"/"regional depots" framing, a category instead of a concrete item, an abstract benefit.
+- Surface form (length, colon, digits, year) does **not** separate winners from losers. Do not optimise for it.
+- A title that wins in one country wins elsewhere about twice as often as a random title. Adapting a proven winner to a new country is a good source of candidates, localised with the real local equivalent.
+
+**How to expand:**
+- Keep the winner's reason to click, tone and approximate simplicity.
+- Each candidate must explore genuinely different territory: a different destination, model family, procedure or price tier. Swapping synonyms, reordering words, or changing one word in the same skeleton is rephrasing, not expansion; reject it.
+- Stay inside the vertical. Do not jump to an unrelated product, service or reason to click.
+- Do not invent audiences, claims, numbers, specs or qualifiers that the winners don't support. Don't make a title more complicated just to make it different.
+- Localise to the target country with values that are real and recognisable there. Never put the country name in the title just to localise it.
+- Vary the concrete values across the set. Don't let one brand or destination dominate (the automated pipeline's worst failure is resolving the same value over and over).
+
+**Years:** the current year is today's year, the next year is today's year + 1.
+- A freshness year (dating an offer, list or availability) may only be the current year, or next year when the title is explicitly forward-looking. Prefer the current year.
+- An intrinsic year (vehicle model year, historical event) may be older when realistic.
+- Don't add a year unless the winners use one.
+
+**Hard rules (the same as the pipeline):**
+- No titles that target or imply exclusivity for any demographic group (age, gender, race, religion, nationality, disability...). No "over 60", "for seniors", "singles over X", "for women".
+- No misleading job or income opportunities, guaranteed results, risk-free returns, get-rich-quick, or recruitment-based investment.
+- No prescription drugs, medications or controlled substances.
+- **Intellectual property.** Brand owners and their brand-protection vendors (Netcraft, Group-IB, EBRAND, Convey, ...) file trademark complaints against ads that name them, and every complaint counts against the page and ad account. Never name:
+  - A bank, lender, card issuer or other financial institution, in any vertical, not only finance: also bank-owned properties, bank auctions, a bank's cards, products or foundations. This includes abbreviations, subsidiaries and branded cards (Garanti BBVA, Bonus Card, Bancomer, Ziraat, Santander, CaixaBank, ...). Banks are the main source of complaints.
+  - A fashion, apparel, footwear, sportswear, luxury, jewelry, watch or cosmetics brand (Zara, PME Legend, Nike, Adidas, Rolex, ...). Use the generic product ("leather jackets", "luxury watches").
+  - These retailers and chains: El Corte Inglés, Castorama, Leroy Merlin, Feu Vert, MediaMarkt, Saturn, E.Leclerc, Darty, Carrefour, Lidl, Aldi, Kaufland, Biedronka, Conforama, BİM, Migros.
+  - Any other store, retail chain or service chain that no winning title from step 2 already names. Other stores (IKEA, JYSK, Norauto, ...) may be kept only when they come from a live winner; never introduce a new one, not even to localise.
+
+  Car, electronics and appliance brands (Toyota, iPhone, Samsung, Bosch) and public services (NHS, SUS) are fine. When a winner names a forbidden brand, reuse only its generic subject ("bank-owned houses", "credit card application", "electronics store clearance").
+- No emojis, no exclamation marks, no ALL-CAPS words.
+- **Production-ready in the target language:**
+  - Correct grammar, spelling, diacritics and agreement (case endings, gender, number).
+  - A real phrase or sentence, not a string of keywords.
+  - Always start with a capital letter. After that, follow the language's own casing: sentence case for most languages (PL, ES, IT, FR, PT, TR, ...), all nouns capitalized in German, and Title Case or sentence case in English, used consistently.
+  - Proper nouns capitalized.
+  - No trailing full stop, no double spaces.
+  - Wrong: `sofa na wyprzedaży`, `tanie sofy wyprzedaz 2026`. Right: `Sofy na wyprzedaży w 2026 roku`.
+- Live winning titles are evidence of the subject, not of form. Never copy their casing, typos or missing diacritics.
+
+### 4. Self-check before showing
+
+For every candidate, check:
+- `TitleInEnglish` is a faithful translation of that exact `Title` (same values and claims), not a different suggestion.
+- `TitleInEnglish` has **at least 3 words** and is **at most about 70 characters**, so it isn't skipped as too long.
+- It is not a near-duplicate of another candidate or of a live title you saw in step 2.
+- The native `Title` starts with a capital letter, follows the language's casing, and is grammatically correct with full diacritics. Read it as a native copywriter would before it goes on an ad.
+
+Drop or fix failures silently. Don't show broken candidates.
+
+### 5. Present and iterate
+
+Show a numbered table: `#`, native `Title`, `TitleInEnglish`, and a few words on which winner or idea it comes from. Then let the user steer: "more like 3", "drop 5 and 7", "same for DE", "less generic". Keep a running list of **approved** titles across turns, and different countries or verticals can be mixed in it.
+
+### 6. Submit as recommendations (only on explicit approval)
+
+Never call `SetNewArticleTitles` until the user clearly says to submit. Before calling, show the exact list (vertical, country, language, title, English) and the count.
+
+Payload per title:
+```json
+{ "Vertical": "<exact name from get_verticals>", "CountryCode": "DE", "LanguageCode": "de", "Title": "<native>", "TitleInEnglish": "<english>" }
+```
+
+Tool behaviour to know:
+- **One invalid row rejects the whole batch.** An unknown country, language or vertical, an empty title, or a duplicate title in the batch returns an error and nothing is inserted. Validate everything first. On an error, fix the row and resubmit.
+- The server checks every `TitleInEnglish` against the banned-words list and the length limit, the native `Title` against the list of bank and brand names, and runs a classifier that catches bank and fashion-brand names the lists miss. Failing titles are not inserted and are listed after "Skipped" in the reply, each with the reason and how to fix it (the banned word or brand it matched, a bank or fashion brand the classifier found, or how much to shorten the English title). Fix each skipped title as its reason says, keeping the rest of the title, show the user the fixed versions, and resubmit them after the user agrees. The server check is the safety net, not the rule: follow the intellectual property rule yourself, because the lists don't cover every store.
+- Codes and names are trimmed, and codes are uppercased on the server.
+- **Reference name:** by default the titles are saved with the reference `agent-expand`. Pass `referenceName` only when the user explicitly asks for a specific name (e.g. "submit them as summer-travel"). Never invent one. Include it in the list you show before submitting.
+
+After submitting, report the inserted count and remind the user briefly how these get used:
+- Titles are only turned into articles by the automatic evening expansion, and only when that country × vertical is performing well enough.
+- Otherwise they expire after about 1.5 days.
+- For a country or vertical with no track record, the user can push them manually from the Title recommendations page in the CK web app.
+
+### 7. Submit for generation (only on explicit request, spends money)
+
+Use `SubmitTitlesForGeneration` only when the user explicitly asks to launch, publish or generate ads for the titles (for example "launch these on Yahoo", "generate ads for 1-5"). Before the first call in a conversation, say plainly that this **creates real articles and ads that will be published and spend budget**, and that the user should only confirm if that is what they want.
+
+Requirements, all from the conversation, never invented:
+- **Affiliate for every title** (`AffiliateName`). It is required. If the user did not say which affiliate, ask. Use `get_affiliate_providers` to get the exact names supported by the division; never guess one.
+- **Tag** (`tagName`). Recommended: it is written on the created adsets and is how queries, scripts and later AI changes find and group them, so the same tag can follow these adsets from launch through optimization. Suggest one in the form `t:someName` (e.g. `t:summer-travel-de`) that names the idea behind the batch, reuse an existing tag when the batch continues an earlier idea, and use it if the user agrees; it is not required.
+- **Budget** (`InitialBudget`, USD per day) and **cost cap** (`CostCap`, USD). Leave both empty unless the user explicitly gives them; empty means the division default budget and no cap. Maximum 20 USD budget and 3 USD cap.
+- **Image prompt** (`imagePromptName`). Leave empty unless the user explicitly names a prompt to use.
+- **Additional review** (`forceAdditionalReview`). Leave it `false`. Set it to `true` only when the user explicitly asks that these titles wait for their manual review before launch.
+
+Depending on the division settings, submitted titles are either sent to generation right away or (partly, e.g. over a daily limit) kept on the **Titles for review** page until the user submits them there. The reply says how many went where. Since you can't know in advance, treat the submit as a launch.
+
+Before calling, show the exact final list (vertical, country, language, title, English, affiliate, budget and cap if set), the tag, and the count, and ask the user to confirm. Call only after a clear yes.
+
+Payload:
+```json
+{
+  "titles": [
+    { "Vertical": "<exact name from get_verticals>", "CountryCode": "DE", "LanguageCode": "de", "Title": "<native>", "TitleInEnglish": "<english>", "AffiliateName": "<exact affiliate name>" }
+  ],
+  "tagName": "t:summer-travel-de"
+}
+```
+
+Tool behaviour to know:
+- **All or nothing.** Any invalid title (unknown vertical, country, language, affiliate not in the division, banned word, duplicate, budget or cap over the limit) rejects the whole batch, and the reply lists every error. Fix those rows and resubmit the whole batch. Unlike `SetNewArticleTitles`, banned-word titles are not skipped; they fail the batch.
+- On success, tell the user how many titles were submitted for generation, how many wait for review (if any), and the tag, if any. Submitted titles are then turned into articles and ads automatically.
+
