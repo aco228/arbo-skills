@@ -184,6 +184,21 @@ Killed adsets in the list count as siblings too, so `AreOfferAdsetsPositives` is
 | `GroupByValues.Age` | string | Bucket: `"<1"`, `"<2"`, `"<3.5"`, `"<6"`, `">6"` (days). |
 | `GroupByValues.ROI` | string | Bucket: `"<-80"`, `"<-50"`, `"<-20"`, `"<0"`, `"<10"`, `"<30"`, `"<50"`, `"<80"`, `">80"`. |
 
+### Intraday snapshots
+| Member | Type | Meaning |
+|---|---|---|
+| `Snapshots` | `IReadOnlyList<StatSnapshot>` | The newest loaded day's stats at each moment they changed, **newest first**, up to 300. `[0]` is the latest state. Values are **cumulative for the day** (like `Profit.Value`), so the change between two snapshots is the difference of their values. A snapshot is added only when revenue, spend, clicks or conversions change. Tracked since 2026-09-29; empty for adsets without stats changes that day. |
+
+`StatSnapshot` members: `TimeUtc` (`DateTime`, UTC), `HoursAgo` (hours since the snapshot), `Minute` (minutes since UTC midnight of the stats day), `Revenue`, `Spend`, `Profit` (dollars), `ROI` (percent, 0 without spend), `RevenueCents`, `SpendCents` (cents), `Clicks`, `Conversions`.
+
+```csharp
+// Profit made in roughly the last 2 hours (snapshot closest to 2h ago, or the oldest one)
+var past = ad.Snapshots.FirstOrDefault(x => x.HoursAgo >= 2) ?? ad.Snapshots.LastOrDefault();
+var profitLast2h = past == null ? 0 : ad.Snapshots[0].Profit - past.Profit;
+```
+
+When a query returns whole `ad` objects, `Snapshots` is left out of the output to keep it small. Return `ad.Snapshots` or a projection of it explicitly (e.g. `ad.Snapshots.Select(x => new { x.TimeUtc, x.Profit })`).
+
 ### Metrics (all `AverageValue`, see section 4)
 | Member | Unit |
 |---|---|
