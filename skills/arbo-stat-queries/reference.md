@@ -164,7 +164,7 @@ Killed adsets in the list count as siblings too, so `AreOfferAdsetsPositives` is
 ### History of changes
 | Member | Meaning |
 |---|---|
-| `Changes` | `List<ChangeModel>`: `.Type` (`ChangeModelType`), `.Origin` (`AdsetChangeOrigin`), `.Created` (unix **milliseconds**), `.From`/`.To` (strings; status changes hold `AdsetStatus` names, but older records can have `From` as `ACTIVE`/`PAUSED`; `GetFromDouble()`/`GetToDouble()` give dollars), `.IsBudget()`, `.ResetTimeUtc` (unix milliseconds or null, when a timed change reverts), `.Comment`. |
+| `Changes` | `List<ChangeModel>`: `.Type` (`ChangeModelType`), `.Origin` (`AdsetChangeOrigin`), `.Created` (unix **milliseconds**), `.From`/`.To` (strings; status changes hold `AdsetStatus` names, but older records can have `From` as `ACTIVE`/`PAUSED`; `GetFromDouble()`/`GetToDouble()` give dollars), `.IsBudget()`, `.ResetTimeUtc` (unix milliseconds or null, when a timed change reverts), `.Comment`, `.Stats` (`StatSnapshot`, see "Intraday snapshots": the adset's cumulative stats of that day at the moment the change was applied, e.g. `.Stats.Profit`; null for changes before 2026-09-30 or when the day had no stats yet; resets and the early-morning activation carry it too). |
 | `LastChangeType` | `ChangeModelType?`, the most recent change. |
 | `LastChangeDays` | Days since the last change. |
 | `GetLastBudgetIncreaseInHours()`, `GetLastBudgetDecreaseInHours()`, `GetLastCapIncreaseInHours()`, `GetLastCapDecreaseInHours()`, `GetLastStatusChangeInHours()` | Hours since that change; `double.MaxValue` if it never happened. Launch is not recorded as a status change, so a never-changed adset returns `double.MaxValue`. |
@@ -189,7 +189,7 @@ Killed adsets in the list count as siblings too, so `AreOfferAdsetsPositives` is
 |---|---|---|
 | `Snapshots` | `IReadOnlyList<StatSnapshot>` | The newest loaded day's stats at each moment they changed, **newest first**, up to 300. `[0]` is the latest state. Values are **cumulative for the day** (like `Profit.Value`), so the change between two snapshots is the difference of their values. A snapshot is added only when revenue, spend, clicks or conversions change. Tracked since 2026-09-29; empty for adsets without stats changes that day. |
 
-`StatSnapshot` members: `TimeUtc` (`DateTime`, UTC), `HoursAgo` (hours since the snapshot), `Minute` (minutes since UTC midnight of the stats day), `Revenue`, `Spend`, `Profit` (dollars), `ROI` (percent, 0 without spend), `RevenueCents`, `SpendCents` (cents), `Clicks`, `Conversions`.
+`StatSnapshot` members (same type as `ChangeModel.Stats`): `TimeUtc` (`DateTime`, UTC), `HoursAgo` (hours since the snapshot), `Minute` (minutes since UTC midnight of the stats day), `Revenue`, `Spend`, `Profit` (dollars), `ROI` (percent, 0 without spend), `RevenueCents`, `SpendCents` (cents), `Clicks`, `Conversions`.
 
 ```csharp
 // Profit made in roughly the last 2 hours (snapshot closest to 2h ago, or the oldest one)
