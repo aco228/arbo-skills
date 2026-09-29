@@ -164,7 +164,7 @@ Running the script only creates **groups**, one per action type and configuratio
 ### History of changes
 | Member | Meaning |
 |---|---|
-| `Changes` | `List<ChangeModel>`: `.Type` (`ChangeModelType`), `.Origin` (`AdsetChangeOrigin`), `.Created` (unix **milliseconds**), `.From`/`.To` (strings; status changes hold `AdsetStatus` names, but older records can have `From` as `ACTIVE`/`PAUSED`; `GetFromDouble()`/`GetToDouble()` give dollars), `.IsBudget()`, `.ResetTimeUtc` (unix milliseconds or null, when a timed change reverts), `.Comment`, `.Stats` (`StatSnapshot`, see "Intraday snapshots": the adset's cumulative stats of that day at the moment the change was applied, e.g. `.Stats.Profit`; null for changes before 2026-09-30 or when the day had no stats yet; resets and the early-morning activation carry it too). |
+| `Changes` | `List<ChangeModel>`, newest first, at most the last 100: `.Type` (`ChangeModelType`), `.Origin` (`AdsetChangeOrigin`), `.Created` (unix **milliseconds**), `.From`/`.To` (strings; status changes hold `AdsetStatus` names, but older records can have `From` as `ACTIVE`/`PAUSED`; `GetFromDouble()`/`GetToDouble()` give dollars), `.IsBudget()`, `.ResetTimeUtc` (unix milliseconds or null, when a timed change reverts), `.Comment`, `.Stats` (`StatSnapshot`, see "Intraday snapshots": the adset's cumulative stats of that day at the moment the change was applied, e.g. `.Stats.Profit`; null for changes before 2026-09-30 or when the day had no stats yet; resets and the early-morning activation carry it too). |
 | `LastChangeType` | `ChangeModelType?`, the most recent change. |
 | `LastChangeDays` | Days since the last change. |
 | `GetLastBudgetIncreaseInHours()`, `GetLastBudgetDecreaseInHours()`, `GetLastCapIncreaseInHours()`, `GetLastCapDecreaseInHours()`, `GetLastStatusChangeInHours()` | Hours since that change; `double.MaxValue` if it never happened. Launch is not recorded as a status change, so a never-changed adset returns `double.MaxValue`. |
@@ -189,6 +189,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | Member | Type | Meaning |
 |---|---|---|
 | `Snapshots` | `IReadOnlyList<StatSnapshot>` | The newest loaded day's stats at each moment they changed, **newest first**, up to 300. `[0]` is the latest state. Values are **cumulative for the day** (like `Profit.Value`), so the change between two snapshots is the difference of their values. A snapshot is added only when revenue, spend, clicks or conversions change. Tracked since 2026-09-29; empty for adsets without stats changes that day. |
+| `SnapshotsByDay` | `IReadOnlyDictionary<string, List<StatSnapshot>>` | Snapshots of **every loaded day**, keyed like `History` (`"yyyy-MM-dd"`), each newest first and cumulative for its day. Compare the same hour across days, e.g. `ad.SnapshotsByDay.TryGetValue(key, out var list)`. Days before 2026-09-29 have no entry. |
 
 `StatSnapshot` members (same type as `ChangeModel.Stats`): `TimeUtc` (`DateTime`, UTC), `HoursAgo` (hours since the snapshot), `Minute` (minutes since UTC midnight of the stats day), `Revenue`, `Spend`, `Profit` (dollars), `ROI` (percent, 0 without spend), `RevenueCents`, `SpendCents` (cents), `Clicks`, `Conversions`.
 
@@ -256,7 +257,7 @@ Enums change during development: these lists are a snapshot and can be out of da
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
 - `FacebookAdsetOrigin`: `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`
-- `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `HourRule`, `Yesterday`, `EndOfDay`
+- `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `Preset` (the older preset automation), `HourRule`, `Yesterday`, `EndOfDay`
 - `TrendDirection`: `Flat`, `Up`, `Down`
 - `AdsetCollectionTrend`: `MinimumNotMet`, `Mixed`, `MoreNegative`, `MorePositive`, `AlwaysPositive`, `AlwaysNegative`
 - `AffiliateFeedType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `WordlineSearchRsoc`, `SearchRsoc2`, `SearchRsoc3`, `N2sJam`, `SearchRsocSt`, `FlwVoluum`
