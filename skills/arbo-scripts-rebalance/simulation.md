@@ -46,7 +46,7 @@ string Direction(string type, object? value, StatResponseAdset ad)
     switch (type)
     {
         case "Kill":
-            return ad.Status == AdsetStatus.Killed ? "none" : "stop";
+            return ad.Status is AdsetStatus.Killed or AdsetStatus.Terminated ? "none" : "stop";
         case "Pause":
             return Num(value) <= 0 ? "none" : "stop";
         case "Activate":

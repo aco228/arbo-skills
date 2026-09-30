@@ -69,9 +69,9 @@ Every path of the body has to return one of these. Budgets and caps passed to ac
 |---|---|
 | `Include()` / `return true;` | Keep the adset visible in the grid. No action. |
 | `Ignore()` / `return false;` | Hide the adset. No action. |
-| `Kill()` | Kill group: sets status Killed. Already-killed adsets are skipped. |
-| `Activate()` | Activate group: sets Active. Only applies to Killed, Paused, Scheduled or Initialized adsets. |
-| `Pause(int hours)` | Pause group: sets Paused and automatically re-activates after `hours`. `0` = skipped. Already Paused or Killed = skipped. One group per distinct `hours`. |
+| `Kill()` | Kill group: sets status Killed. Already-killed and terminated adsets are skipped. |
+| `Activate()` | Activate group: sets Active. Only applies to Killed, Paused, Scheduled or Initialized adsets. Terminated adsets never come back. |
+| `Pause(int hours)` | Pause group: sets Paused and automatically re-activates after `hours`. `0` = skipped. Already Paused, Killed or Terminated = skipped. One group per distinct `hours`. |
 | `ChangeBudgetByPercentage(new ActionChangeBudgetByPercentageRequest { ... })` | Percentage budget change (details below). One group per distinct request. |
 | `NewBudgetInUsd(double usd)` | Set an exact new budget in dollars (rounded up to cents). |
 | `NewBudgetInCents(double cents)` | Set an exact new budget in cents. The group clamps it (min 150 cents). |
@@ -253,7 +253,7 @@ One value per loaded day, **newest first**.
 
 Enums change during development: these lists are a snapshot and can be out of date. `get_stat_response_adset_definition` returns the current values (read from the code on every call); to see which values actually occur in the division, run a stats query that returns the distinct values. Affiliates are data, not an enum: compare `AffiliateName` or `AffiliateModel.FeedType`, and use `get_affiliate_providers` / `get_affiliate_feed_types` for what the division supports.
 
-- `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`
+- `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`, `Terminated` (permanent kill set by a person in the UI; same as Killed for scripts, but no group, budget or cap change is ever applied to it, so filter it out like Killed: `ad.Status is AdsetStatus.Killed or AdsetStatus.Terminated`)
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
 - `FacebookAdsetOrigin`: `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`

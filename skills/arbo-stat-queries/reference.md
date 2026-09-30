@@ -107,6 +107,8 @@ The value passed by the caller for `name`, or `defaultValue`. Name, default and 
 
 The list includes every adset that has stats on any loaded day, also adsets killed since. For days after the kill they have no stats (0). `Status` is the current status. For questions about the current state, filter with `Status == AdsetStatus.Active` or on spend; for patterns and history, keep them.
 
+`Terminated` is a kill that cannot be undone: set only by a person in the UI (complications, compliance), paused on Facebook, and no tool, script or reset changes the adset again. Treat it as killed in every query (`Status is AdsetStatus.Killed or AdsetStatus.Terminated`, or the `IsKilledOrTerminated()` extension).
+
 ### Identity and state
 | Member | Type | Meaning |
 |---|---|---|
@@ -252,7 +254,7 @@ One value per loaded day, **newest first**.
 
 Enums change during development: these lists are a snapshot and can be out of date. `get_stat_response_adset_definition` returns the current values (read from the code on every call); to see which values actually occur in the division, run a stats query that returns the distinct values. Affiliates are data, not an enum: compare `AffiliateName` or `AffiliateModel.FeedType`, and use `get_affiliate_providers` / `get_affiliate_feed_types` for what the division supports.
 
-- `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`
+- `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`, `Terminated` (permanent kill set by a person in the UI; treat as killed, never changeable)
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
 - `FacebookAdsetOrigin`: `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`

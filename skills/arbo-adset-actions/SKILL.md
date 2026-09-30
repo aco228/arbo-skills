@@ -15,9 +15,9 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 
 | Tool | Changes | Values |
 |---|---|---|
-| `submit_adset_kills` | Status → Killed (stopped, no planned return) | Only `AdsetId` and `Comment`. Any adset that is not already killed. |
-| `submit_adset_pauses` | Status → Paused (cooldown, comes back by itself) | `HoursToReset`: 1 to 20 hours, **default 10**; after it the adset is activated again automatically. Not for paused or killed adsets. |
-| `submit_adset_activations` | Status → Active | `NewBudget`: optional **USD**, 1.5 to 300, **not above** the adset's current budget; null = keep the current budget. Paused or killed adsets only. |
+| `submit_adset_kills` | Status → Killed (stopped, no planned return) | Only `AdsetId` and `Comment`. Any adset that is not already killed or terminated. |
+| `submit_adset_pauses` | Status → Paused (cooldown, comes back by itself) | `HoursToReset`: 1 to 20 hours, **default 10**; after it the adset is activated again automatically. Not for paused, killed or terminated adsets. |
+| `submit_adset_activations` | Status → Active | `NewBudget`: optional **USD**, 1.5 to 300, **not above** the adset's current budget; null = keep the current budget. Paused or killed adsets only, never terminated ones. |
 | `submit_adset_budget_changes` | Daily budget | `NewBudgetUsd`: **USD**, 1.5 to 300. Active adsets only. |
 | `submit_adset_cap_changes` | Cost cap | `NewCapInCents`: **cents**, 2 to 350 (45 = 0.45 USD). Active adsets that already have a cap. |
 | `submit_adset_cap_and_budget_changes` | Both, in one action | `NewBudgetUsd` (USD) and `NewCapInCents` (cents). Active capped adsets. |
@@ -42,6 +42,10 @@ Status has three tools, one per target status. On Facebook, **kill and pause do 
 - **Activate** (`submit_adset_activations`) turns a paused or killed adset back on right away. With `NewBudget` (USD) it restarts at a lower budget, which is the safe way to bring back an adset whose performance is uncertain. It can't be higher than the adset's current budget.
 
 Pick by intent: if the adset should come back within a day, pause; if it shouldn't come back, kill.
+
+### Terminated adsets (read-only for you)
+
+A fourth status exists that no tool sets: **Terminated**. It means the same as Killed for stats and automation (stopped, no planned return, paused on Facebook), but it is **not reversible**. Only a person can set it, through the CK UI, when an adset or a whole campaign must never run again for a complication or compliance reason. Every tool and script refuses to touch a terminated adset: kill, pause, activate, budget and cap changes all fail on it, and no timed reset ever brings it back. If the user asks you to reactivate or change a terminated adset, say that it was terminated permanently by a person and cannot be changed by any tool. If the user wants a permanent kill, tell them it is done in the UI (System → Search facebook adsets), not through you.
 
 ### Clone budget
 
