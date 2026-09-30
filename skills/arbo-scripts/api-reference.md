@@ -76,6 +76,21 @@ Every path of the body has to return one of these. Budgets and caps passed to ac
 | `NewBudgetInUsd(double usd)` | Set an exact new budget in dollars (rounded up to cents). |
 | `NewBudgetInCents(double cents)` | Set an exact new budget in cents. The group clamps it (min 150 cents). |
 | `ChangeCostCap(double cents)` | Set a new cost cap in cents on an adset that **already has** a cap. Adsets with `CostCap == 0` are skipped. |
+
+### Timed budget and cap changes: `.WithResetAfterHours(int hours)`
+
+`NewBudgetInUsd(...)`, `NewBudgetInCents(...)`, `ChangeCostCap(...)` and `ChangeBudgetByPercentage(...)` return an action you can chain `.WithResetAfterHours(hours)` on. The change is then temporary: `hours` after it is applied, the budget (or cap, for `ChangeCostCap`) goes back to the value the adset had before the change. Without it the new value stays.
+
+- `hours` is corrected into **1 to 24**: `0` or a negative number becomes 1, anything above 24 becomes 24.
+- Actions with different reset hours (or none) land in different groups, so one script can mix temporary and permanent changes.
+- A later change to the same field cancels that part of the pending reset; killing the adset clears all resets. `ad.Changes[i].ResetTimeUtc` shows when a timed change reverts.
+- Chain it before `WithComment`, which stays last.
+
+```csharp
+if (ad.ROI.Value > 50 && ad.Spend.Value > 10)
+    return NewBudgetInUsd(ad.Budget.Value * 1.3).WithResetAfterHours(6).WithComment("evening push on strong ROI");
+return Include();
+```
 | `CreateCostCap()` | **Clones** the adset as a cost-cap adset (it does not convert the existing one). Cap auto = `floor(PricePerConversion) - 5` cents, limited to at least 3. New budget $50. |
 | `CreateCostCapWith(double capCents)` | Same clone, with an explicit cap in cents. |
 | `Clone()` | Clone the adset with the source adset's current budget. |
@@ -94,6 +109,7 @@ Every path of the body has to return one of these. Budgets and caps passed to ac
 | `MaximumChange` | `10_00` | A step larger than this becomes exactly this. `0` = no maximum. |
 | `MinimumBudget` | `150` | The result is never below this. |
 | `MaximumBudget` | `300_00` | The result is never above this. **An adset already above it is set down to it, even on an increase.** |
+| `ResetAfterHours` | `null` | Hours until the budget goes back, the same as `.WithResetAfterHours` and corrected into 1 to 24 the same way. `null` = no reset. |
 
 If the resulting budget equals the current one, the adset is dropped from the group.
 

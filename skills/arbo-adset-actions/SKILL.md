@@ -18,9 +18,9 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 | `submit_adset_kills` | Status → Killed (stopped, no planned return) | Only `AdsetId` and `Comment`. Any adset that is not already killed or terminated. |
 | `submit_adset_pauses` | Status → Paused (cooldown, comes back by itself) | `HoursToReset`: 1 to 20 hours, **default 10**; after it the adset is activated again automatically. Not for paused, killed or terminated adsets. |
 | `submit_adset_activations` | Status → Active | `NewBudget`: optional **USD**, 1.5 to 300, **not above** the adset's current budget; null = keep the current budget. Paused or killed adsets only, never terminated ones. |
-| `submit_adset_budget_changes` | Daily budget | `NewBudgetUsd`: **USD**, 1.5 to 300. Active adsets only. |
-| `submit_adset_cap_changes` | Cost cap | `NewCapInCents`: **cents**, 2 to 350 (45 = 0.45 USD). Active adsets that already have a cap. |
-| `submit_adset_cap_and_budget_changes` | Both, in one action | `NewBudgetUsd` (USD) and `NewCapInCents` (cents). Active capped adsets. |
+| `submit_adset_budget_changes` | Daily budget | `NewBudgetUsd`: **USD**, 1.5 to 300. Optional `HoursToReset`: 1 to 24 (see *Timed changes*). Active adsets only. |
+| `submit_adset_cap_changes` | Cost cap | `NewCapInCents`: **cents**, 2 to 350 (45 = 0.45 USD). Optional `HoursToReset`: 1 to 24. Active adsets that already have a cap. |
+| `submit_adset_cap_and_budget_changes` | Both, in one action | `NewBudgetUsd` (USD) and `NewCapInCents` (cents). Optional `HoursToReset`: 1 to 24, resets both. Active capped adsets. |
 | `submit_adset_duplicates` | New copy in the same account | Only `AdsetId` and `Comment`. The copy spends its own budget. |
 | `submit_adset_clones_with_cap` | New copy with a cost cap | `CapInCents`: **cents**, 2 to 350. The copy gets a default daily budget of **50 USD**. |
 | `submit_adset_clones_with_cap_and_budget` | New copy with a cost cap and budget | `CapInCents`: **cents**, 2 to 350, and `BudgetInUsd`: **USD**, 1.5 to 70 (hard limit). Default choice is 50 USD; see below. |
@@ -30,6 +30,14 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 | `list_pending_adset_actions` | Nothing (read-only) | Pending actions per adset. |
 
 Every action has `AdsetId` and `Comment`. Every submit takes one `tagName` and an optional `forceAdditionalReview`.
+
+### Timed changes (`HoursToReset` on budget and cap changes)
+
+With `HoursToReset` (1 to 24 hours) a budget or cap change is temporary: after that many hours the budget and/or cap goes back to the value the adset had **when you submitted**. Without it, the new value stays. Use it for a short push or cut, e.g. a higher budget for the evening hours, and only when the user asks for a temporary change or agrees to one. Show the reset time and the value it returns to in the plan.
+
+- The clock starts at the submit, not when the change is executed. If the actions wait for review, part of the time can pass before they run, and a long wait can make the reset happen right after the change.
+- A later change to the same field (budget or cap) cancels that part of the pending reset: the newer change wins. Killing the adset clears all its resets.
+- Outside 1 to 24 is refused.
 
 Budget is in **USD**, caps are in **cents**. Stats money (`Spend`, `Profit`, `Budget`) is dollars, `CostCap` in stats is cents. Convert carefully and show both units to the user when a cap is involved ("cap 45 cents = 0.45 USD").
 
@@ -113,6 +121,7 @@ Report accepted counts per tool, the tag, and whether they were **executed** or 
 - Killing an adset that only needs a cooldown: it then stays off until someone activates it. Pause it instead. If unsure, ask.
 - Pausing an adset that should stay off: it comes back by itself after `HoursToReset` (10 hours if not sent). Kill it instead.
 - Forgetting `HoursToReset` on a pause and silently getting the 10-hour default: choose the hours and show them in the plan. More than 20 hours is refused, because a longer pause resets the learning phase.
+- Sending `HoursToReset` on a budget or cap change the user wanted to keep: the value quietly goes back after that many hours. Leave it empty unless the change is meant to be temporary.
 - An activation `NewBudget` above the adset's current budget: it is refused. To activate and raise the budget, activate first, then use `submit_adset_budget_changes` once the activation has been executed.
 - Changing an adset that is not active (budget and cap tools refuse it) or a cap on an adset without a cap.
 - Acting on today's numbers only, or on tiny spend.
