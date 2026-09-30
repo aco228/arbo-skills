@@ -9,7 +9,7 @@ You find the next titles worth testing and submit them. Unlike plain title brain
 
 This skill is self-contained. It works in the Claude web or desktop app and in Claude Code without the project source. Everything comes from these instructions, [query.md](query.md) and the CK MCP tools. The MCP tool prefix differs per person; tools are named by function here. The MCP connection determines the division: never work across divisions.
 
-Tools used: `run_stat_query` (and `save_agentic_query` only to restore the scout query), `get_verticals`, `get_affiliate_providers`, `get_affiliate_feed_types`, `set_new_article_titles`, `submit_titles_for_generation`.
+Tools used: `run_stat_query` (and `save_agentic_query` only to restore the scout query), `get_verticals`, `get_affiliate_providers`, `get_affiliate_feed_types`, `get_traffic_accounts` (only when the user names an account), `set_new_article_titles`, `submit_titles_for_generation`.
 
 ## Ways to submit
 
@@ -171,9 +171,10 @@ Never submit until the user clearly says to. Before calling, show the exact fina
 - **Tag** (`tagName`). Suggest `t:scout-<scope>-<yyyymmdd>`, e.g. `t:scout-de-oh-20260927` or `t:scout-all-20260927`. It is written on the created adsets, and it is how the next scout run tells scout titles apart (the `tag` field in the query rows). Use it once the user agrees.
 - `initialBudget`, `costCap`: leave both empty unless the user gives them (maximum 20 USD budget and 3 USD cap).
 - `imagePromptName`: leave empty unless the user names one.
+- `accountName` (per title): leave empty unless the user explicitly says which account titles go to. **Never pick an account yourself**, even when the data points to one; empty lets the system choose. When the user names one, use the exact name from `get_traffic_accounts`; ask if unclear. Its `Type` must equal the affiliate's `AccountType` from `get_affiliate_providers`; if not, tell the user and ask for another account instead of choosing one (the tool rejects a mismatch anyway). It is a preference: a full or ineligible account may be swapped for another of the same type.
 - `forceAdditionalReview`: `true` for Review. `false` only for Generation.
 - For **Generation**, before the first call in a conversation, say plainly that it **creates real articles and ads that will be published and spend budget**.
-- **All or nothing.** One invalid title (unknown vertical, country, language or affiliate; banned word; duplicate; budget or cap over the limit) rejects the whole batch, and the reply lists the errors. Fix those rows and resubmit the whole batch. Report how many went to generation and how many wait for review.
+- **All or nothing.** One invalid title (unknown vertical, country, language, affiliate or account; account type not matching the affiliate; banned word; duplicate; budget or cap over the limit) rejects the whole batch, and the reply lists the errors. Fix those rows and resubmit the whole batch. Report how many went to generation and how many wait for review.
 
 **Recommendations** (`set_new_article_titles`): each item has `vertical`, `countryCode`, `languageCode`, `title`, `titleInEnglish`. Pass `referenceName` only if the user asks for one. One invalid row rejects the batch. Titles failing the banned-word, brand or length checks are skipped and listed with a reason. Fix them as the reason says, show the fixed versions, and resubmit after the user agrees.
 
