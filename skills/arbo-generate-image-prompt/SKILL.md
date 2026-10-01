@@ -32,7 +32,6 @@ Write them exactly like this, case-sensitive, with double curly braces:
 |---|---|---|
 | `{{PRIMARY_TEXT}}` | The ad headline, in the target language. The only big text in the image. | **Yes** |
 | `{{LanguageName}}` | The language name in English (e.g. `German`). | **Yes** |
-| `{{AspectRatio}}` | `1:1`, `4:5`, `9:16` or `16:9`. | **Yes** |
 | `{{Anchor}}` | The article's topic or keyword phrase (may be in the target language). Used to understand the subject. | **Yes** |
 | `{{article_description}}` | A 2–3 sentence neutral summary of the article, in the target language. | **Yes** |
 | `{{Strategy}}` | Free-text creative direction for the campaign, written by a media buyer. | **Yes** |
@@ -45,6 +44,7 @@ Facts about the values that the prompt must survive:
 - `{{Anchor}}` may contain search-keyword phrasing ("best suv lease deals 2026"). It must **never be rendered as visible text** unless the same words appear in the headline or description.
 - Never invent other placeholders. Nothing else gets replaced, and an unknown `{{Something}}` would reach the model literally.
 - Write the prompt itself in **English**. Only the rendered text is in `{{LanguageName}}`.
+- Never state an aspect ratio, size, dimensions or orientation (no `1:1`, "square", "vertical poster"). CK sends the size to the image model separately, and the same prompt is used for square and portrait images.
 
 ## One prompt, every topic (hard rule)
 
@@ -61,7 +61,7 @@ A base prompt is a **template reused for literally every title**. The same text 
 
 Every prompt has these sections, in this order. Use uppercase section headings as plain lines, and bullets for rules. You may rename a heading, merge two small sections, or add a design section (for example `COMPOSITION`, `VISUAL STYLE`, `TYPOGRAPHY`), but no part may be missing.
 
-1. **Opening line.** One sentence stating the output: a polished standalone social media advertisement, aspect ratio `{{AspectRatio}}`, the ad's character in a few words (e.g. "an informational editorial ad that leads to an article, optimized for click-through rate in a mobile feed").
+1. **Opening line.** One sentence stating the output: a polished standalone social media advertisement, the ad's character in a few words (e.g. "an informational editorial ad that leads to an article, optimized for click-through rate in a mobile feed").
 2. **HEADLINE.** Quote `"{{PRIMARY_TEXT}}"`. Require every headline word to be rendered exactly once in `{{LanguageName}}`, preserving spelling, accents, punctuation, capitalization, wording and word order, with nothing added, omitted, translated, paraphrased or repeated.
 3. **CONTEXT.** Present `{{Anchor}}` as the informational topic and `{{article_description}}` as the article description. Say they are for understanding the topic, audience and visual subject, and that the image must make the topic immediately clear **without pretending to sell or provide it**.
 4. **BRANDS (STRICT).** The mandatory brand block from "Mandatory compliance rules", word for word, placed right after CONTEXT so the model reads it before any design instruction. Never move it to the end or merge it into COMPLIANCE.
@@ -168,7 +168,9 @@ Pin down, asking only about what's missing and genuinely changes the result:
 - **Visual language**: palette logic (for example "pale neutral background with one or two strong accent colours"), typography style (condensed, extra-bold sans, serif editorial), photo or illustration or 3D, lighting, depth.
 - **Density**: how much supporting text and how many elements.
 
-Defaults if the user doesn't specify: a 1:1 mindset that still works at 4:5, one hero subject, the headline in the top half, low density.
+Defaults if the user doesn't specify: one hero subject, the headline in the top half, low density.
+
+The layout must work at any aspect ratio (square and portrait): describe positions relative to the canvas (top half, left side, centered), never fixed grids that only fit one shape.
 
 ### From reference images
 - Describe what you see in design terms: grid, headline position and size ratio, subject treatment (cut-out, full-bleed photo, illustration), palette logic, typography class, recurring motifs, density.
@@ -235,14 +237,13 @@ Rules for variations:
 
 ## Test prompts
 
-The user may ask for a **test prompt** to try the base prompt in an image generator by hand. They give a title (the headline) and possibly a description, anchor, language, aspect ratio or strategy.
+The user may ask for a **test prompt** to try the base prompt in an image generator by hand. They give a title (the headline) and possibly a description, anchor, language or strategy.
 
 - Take the **exact current base prompt** (or the variation they name). For a saved prompt, load it with `get_image_prompt` first, so the test uses what is really stored, and replace the placeholders. Nothing else changes: no wording, no sections, no hints, no rules added or removed, no adaptation to the test topic. The point of a test is to see how the real template behaves on real inputs, and any tailoring would hide that.
 - Fill placeholders the way CK does:
   - `{{PRIMARY_TEXT}}`: the title, verbatim.
   - `{{article_description}}`, `{{Anchor}}`, `{{Strategy}}`, `{{CountryName}}`, `{{Countries}}`: the given value verbatim, or an **empty string** if not given. Don't invent a description, and don't fall back to the title for the anchor.
   - `{{LanguageName}}`: the given language, or the English name of the title's language (e.g. `German`).
-  - `{{AspectRatio}}`: the given ratio, or `1:1`.
 - Don't translate, correct or rephrase supplied values, even when they have typos.
 - Output the filled prompt in a single code block, ready to paste. Above it, list only the values you used for each placeholder.
 - If the resulting image reveals a problem, fix the **base prompt** (then re-run the review), and produce the test again from the new base. Never patch only the test copy.
@@ -282,7 +283,7 @@ When the user says the prompt is final, show the final `Name`, `Description` and
 This is the current production default (`default`), lightly condensed. It shows the DNK and tone: an editorial ad with an optional search-tag motif. New prompts should reach this level of rigour, but with their own design sections, and be written tighter: this one repeats itself in places (for example the search label is explained in three sections).
 
 ```
-Create a polished standalone social media advertisement with aspect ratio {{AspectRatio}}, designed as an informational editorial ad that leads to an article, optimized for click-through rate in a mobile feed.
+Create a polished standalone social media advertisement, designed as an informational editorial ad that leads to an article, optimized for click-through rate in a mobile feed.
 
 HEADLINE TEXT
 The main headline is:
