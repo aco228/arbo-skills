@@ -128,8 +128,8 @@ Each title needs: `vertical` (exact name), `countryCode`, `languageCode` (the co
 - **Intellectual property.** Brand owners file trademark complaints, and every complaint counts against the page and ad account. Never name:
   - A bank, lender, card issuer or other financial institution, in any vertical. This includes bank-owned properties, bank auctions, a bank's cards, products or foundations, abbreviations, subsidiaries and branded cards (Ziraat, BIM card, Banco Popular, Santander, ...).
   - A fashion, apparel, footwear, sportswear, luxury, jewelry, watch or cosmetics brand (Zara, Hugo Boss, Nike, Rolex, ...). Use the generic product.
-  - These retailers: El Corte Inglés, Castorama, Leroy Merlin, Feu Vert, MediaMarkt, Saturn, E.Leclerc, Darty, Carrefour, Lidl, Aldi, Kaufland, Biedronka, Conforama, BİM, Migros.
-  - Any other store or chain that no live winner already names. Stores like IKEA, JYSK, XXXLutz, ATU, Norauto, Walmart may be kept only when a winner in that country names them. Never introduce a new store, not even to localise.
+  - A store or commercial market of any kind (supermarket, hypermarket, discount store, DIY/home or furniture store, electronics store, department store, retail chain or online marketplace), in any vertical, even when a live winner names it (Walmart, JYSK, IKEA, XXXLutz, Lidl, Aldi, Carrefour, Leroy Merlin, Castorama, MediaMarkt, El Corte Inglés, Amazon, Temu, ...). Walmart and JYSK have already filed complaints. Use a generic reference.
+  - Feu Vert, or any other service chain (car service, telecom, courier, ...) that no live winner already names. Service chains like ATU or Norauto may be kept only when a winner in that country names them. Never introduce a new one, not even to localise.
 
   Car, tyre, electronics and appliance brands (Toyota, Michelin, iPhone, Bosch) and public services (NHS, SUS) are fine. When a winner names a forbidden brand, reuse only its generic subject.
 - No emojis, no exclamation marks, no ALL-CAPS words.
@@ -147,7 +147,7 @@ Each title needs: `vertical` (exact name), `countryCode`, `languageCode` (the co
 - The native `title` starts with a capital letter, follows the language's casing, and is grammatically correct with full diacritics. Read it as a native copywriter would before it goes on an ad.
 - `titleInEnglish` has at least 3 words and at most about 70 characters.
 - It is about as long and as specific as its source winner's `title`. Anything under about 4 words is suspect: fix it or drop it.
-- It is not a near-duplicate of another candidate, of `recentLaunches` or of `testedTitles` in that country. Compare the meaning, not the spelling: "JYSK beds" vs "IKEA beds and mattresses" in the same country, or "Continental tyres with fitting" vs "Continental all-season tyres with fitting", count as duplicates.
+- It is not a near-duplicate of another candidate, of `recentLaunches` or of `testedTitles` in that country. Compare the meaning, not the spelling: "Cheap beds" vs "Affordable beds and mattresses" in the same country, or "Continental tyres with fitting" vs "Continental all-season tyres with fitting", count as duplicates.
 - Right before submitting, if more than an hour has passed since step 2, run the query again (a small `top` is enough) and re-check against `recentLaunches`.
 - It doesn't repeat losing DNA.
 
@@ -185,7 +185,7 @@ When the user asks how earlier scout batches did, run the scout query for the wi
 ## Things that are easy to get wrong
 
 - **The batch comes on top of the automatic pipeline**, which already launches most new titles. Size it as extra tests, not the division's total.
-- **Winners that break today's rules** (demographics, banks, fashion brands, banned retailers) are evidence of a subject, not a template.
+- **Winners that break today's rules** (demographics, banks, fashion brands, stores and markets) are evidence of a subject, not a template.
 - **Old big winners and new winners are different signals.** `winners` shows what earns. `newWinners` shows what a new test can still achieve now. Prefer the second when judging whether a segment is worth testing.
 - **Thin data.** A segment with fewer than 5 judged tests has an unreliable hit rate. Treat it as explore, not exploit.
 - **Stats days are UTC**, and the query uses full days only (ending yesterday). Just-launched titles appear only in `recentLaunches`.
