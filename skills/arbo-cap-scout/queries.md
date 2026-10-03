@@ -82,7 +82,8 @@ var adsets = await LoadStatsToday();
 var utcDayShare = Math.Max(0.1, (DateTime.UtcNow.Hour + DateTime.UtcNow.Minute / 60.0) / 24);
 AddNote($"Today is UTC {adsets.FirstOrDefault()?.Spend.DateKey}, {Math.Round(utcDayShare * 100)}% of the UTC day has passed. capOffer / capAccount count cap adsets of the same offer and country (killed ones included) seen in the last 6 days.");
 
-var pool = adsets.Where(x => x.Status == AdsetStatus.Active && x.CostCap.Value == 0 && x.TrafficProvider == TrafficProvider.Facebook
+// Sources must be eligible now (Active, article present) AND delivering today: Status alone doesn't prove delivery.
+var pool = adsets.Where(x => x.Status == AdsetStatus.Active && !x.IsArticleDeleted && x.IsActiveToday && x.CostCap.Value == 0 && x.TrafficProvider == TrafficProvider.Facebook
     && (country == "" || x.Country.Equals(country, StringComparison.OrdinalIgnoreCase))
     && (feed == "" || x.AffiliateModel.FeedType.ToString().Equals(feed, StringComparison.OrdinalIgnoreCase))).ToList();
 

@@ -146,6 +146,7 @@ When the user asks, run a small query over clones tagged `a:capScout` (tags are 
 - **`LastCloneCapUtcHours` is in days**, and `double.MaxValue` when never cloned (the query shows null).
 - **A recent clone with nothing visible** is pending, rejected or silent. Never clone the same adset again in that state.
 - **Offer counts include killed caps** from the last 6 days, and clones that never had a stats row are invisible everywhere. If the user says they just cloned something, believe them over the stats.
+- **A source must be delivering today.** `Status == Active` is CK's status and doesn't prove the adset is running (the provider can stop delivery, and the loaded list also holds adsets that stopped days ago). The scan query keeps only `IsActiveToday` sources with an article; never clone a source on yesterday's numbers alone if it has no activity today.
 - **Today is partial.** A `today` signal at 10:00 UTC is strong evidence; a `yesterday` signal with a weak today is weaker. Say which it is.
 - **Don't clone the same offer twice in one batch** in the same account. The offer rule only sees existing caps, not the other rows of your list.
 - **Speed matters, but so does the yes.** Keep the table short and the reasoning to one line per row, so the user can confirm in seconds.

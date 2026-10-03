@@ -153,4 +153,5 @@ Report accepted counts per tool, the tag, and whether they were **executed** or 
 - Replicating a decaying adset, or one with a single good day on tiny spend.
 - Guessing account names or picking an account of the wrong provider or type: take the names from `get_traffic_accounts` and match both `TrafficProvider` (with the adset's `TrafficProvider`) and `Type` (with its `AffiliateModel.AccountType`).
 - Replicating into an account where the same offer is already running, or into the adset's own account (use `submit_adset_duplicates` for a copy in the same account).
+- Cloning or replicating a source that isn't running. In the stats the source must have `Status == Active`, `IsArticleDeleted == false` **and** `IsActiveToday == true` (it delivered on the current UTC day). `Status` alone is CK's status and doesn't prove delivery, and the stats list also holds adsets that stopped days ago. For kills, pauses and budget cuts this doesn't apply.
 - Expecting the replicate in the stats right after the submit. It shows up only after generation and publishing.

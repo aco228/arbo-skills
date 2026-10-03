@@ -142,7 +142,7 @@ Queries gather intelligence; arbo scripts (the **arbo-scripts** skill) act on it
 4. Test the script before proposing it (this is the only use of `RunTestScript`; never use it to answer questions about adsets): in a query, select the adsets that should get each action independently of the script (adsets the user named, or the goal written as a plain filter, not the script's conditions copied), run `RunTestScript` and `Compare` each action, plus `"None"` for adsets that must stay untouched. Fix until every comparison `IsMatch`, and show the user the kills and budget changes with their comments.
 
 ```csharp
-var adsets = (await LoadStatsToday()).Where(x => x.Status == AdsetStatus.Active).ToList();
+var adsets = (await LoadStatsToday()).Where(x => x.Status == AdsetStatus.Active && x.IsActiveToday).ToList();
 var test = await RunTestScript("""
     if (ad.Spend.Overall > 50 && ad.ROI.Overall < -30) return Kill().WithComment("ROI < -30% after $50");
     return Ignore();
@@ -174,7 +174,8 @@ When the user wants their own query for the **Queries** editor (Stats page → Q
 
 ## Things that are easy to get wrong
 
-- **Killed adsets are included.** Every loaded day's adsets are in the list, also ones killed since; they have no stats on the days after the kill. For "current" questions filter with `x.Status == AdsetStatus.Active` or `x.Spend > 0` (today) / `x.Spend.Overall > 0` (the period).
+- **The list holds every adset with stats on any loaded day, grouped together**, also ones killed or stopped days ago; for the days after they stopped, their values are 0 (query loads even give them an all-zero row for the newest day). `Status == AdsetStatus.Active` is CK's status and doesn't prove the adset is delivering. **For "today" / "currently running" questions filter with `x.IsActiveToday`** (delivered on the current UTC day); for another day use `x.HasStatsForDay(day)`; for the period, `x.Spend.Overall > 0`. Clone and replicate candidates need `x.Status == AdsetStatus.Active && !x.IsArticleDeleted && x.IsActiveToday`.
+- **`IsAdsetDeleted` is always false** (legacy). Don't filter on it.
 - **`x.Spend` as a number is the newest loaded day**, which is today for `LoadStatsToday...()`. Use `.Overall` or `SumLastDays(n)` for periods.
 - **Ratios over part of the period**: `SumLastDays` / `SumDaysAgo` on a ratio sums daily ratios; divide sums of the underlying metrics instead. `.Overall` of a ratio is fine.
 - **`Yesterday` is the second-newest day that has data**, not always the calendar day before. `GetDaysAgo(1)` is the calendar day before.

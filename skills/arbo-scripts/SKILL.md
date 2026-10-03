@@ -42,7 +42,7 @@ Establish, asking only for what is missing:
 - **Which adsets.** Conditions on status, country, vertical or theme, affiliate, account, age, cost cap, origin, and so on.
 - **Which signal.** Which metric, over which window (today, `Yesterday`, the last N days, `Overall`), and the thresholds.
 - **What to do** with the matches, and what to do with the rest: show them (`Include()`) or hide them (`Ignore()`).
-- **Guards.** A minimum spend before judging ROI, time since the last budget change, whether the adset is currently active, and so on.
+- **Guards.** A minimum spend before judging ROI, time since the last budget change, whether the adset is currently active (`Status == AdsetStatus.Active`) and actually delivered today (`IsActiveToday`), and so on.
 
 If the user is vague ("kill the bad ones"), propose concrete thresholds and state them so they can adjust.
 
@@ -168,7 +168,7 @@ When the CK MCP tools are available, test every script that returns actions befo
 The test sees the adsets you load in the query, which may be more days than the Stats page's 6; load the same window the script will run on (`LoadStatsToday()` = 6 days). Last execution and stat collection times are null, as on a first run, so `CanRun` gates on `LastExecutionUtc` pass.
 
 ```csharp
-var adsets = (await LoadStatsToday()).Where(x => x.Status == AdsetStatus.Active).ToList();
+var adsets = (await LoadStatsToday()).Where(x => x.Status == AdsetStatus.Active && x.IsActiveToday).ToList();
 var test = await RunTestScript("""
     // ... the full script, header included ...
     if (ad.Spend.Overall > 50 && ad.ROI.Overall < -30) return Kill().WithComment("ROI < -30% after $50");

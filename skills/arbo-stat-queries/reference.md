@@ -103,9 +103,13 @@ The value passed by the caller for `name`, or `defaultValue`. Name, default and 
 
 ## 3. `StatResponseAdset`: one adset
 
-### Killed adsets
+### Which adsets are in the list (killed, stopped, live)
 
-The list includes every adset that has stats on any loaded day, also adsets killed since. For days after the kill they have no stats (0). `Status` is the current status. For questions about the current state, filter with `Status == AdsetStatus.Active` or on spend; for patterns and history, keep them.
+Which adsets are in the list: **every adset of the division that has stats on any loaded day, grouped together**, including ones that stopped days ago. In query loads an adset that only has older stats still gets a row for the newest day, with all zeros, so a key in `History` doesn't mean the adset ran that day.
+
+- `Status` is CK's own status (what CK last set). `Active` usually means live, but the traffic provider can still not deliver it (disapproval, account or payment problem, learning stopped), and CK doesn't sync the provider's status back.
+- **For anything about today, filter on `IsActiveToday`** (it delivered on the current UTC day). For another day use `HasStatsForDay(day)`.
+- "Eligible to act on now" = `Status == AdsetStatus.Active && !IsArticleDeleted`; "running today" = `IsActiveToday`. A clone or replicate source needs both.
 
 `Terminated` is a kill that cannot be undone: set only by a person in the UI (complications, compliance), paused on Facebook, and no tool, script or reset changes the adset again. Treat it as killed in every query (`Status is AdsetStatus.Killed or AdsetStatus.Terminated`, or the `IsKilledOrTerminated()` extension).
 
@@ -118,7 +122,9 @@ The list includes every adset that has stats on any loaded day, also adsets kill
 | `TrafficAccountName`, `TrafficAccountId`, `TrafficCampaignId` | string | Account and campaign. |
 | `Origin` | `AdsetOrigin` | How the adset was created (regular publish, clone, cap clone, replicate to another account, transfer ...). |
 | `OriginalAdsetId` | string? | Adset this one was created from (clone, cap clone, transfer or replicate to another account): the direct parent, so a chain A -> B -> C has C pointing to B. Empty when none. Transfers and replicates carry it only from 2026-09-27; older ones are empty. |
-| `IsAdsetDeleted` | bool | Adset deleted on the provider. |
+| `IsActiveToday` | bool | **The adset delivered on the current UTC day**: today's stats have spend, impressions, clicks, conversions or revenue. Use it for anything about today (live adsets, clone or replicate sources, today's economics). The list also holds adsets that stopped days ago (their today row is all zeros), and `Status == Active` doesn't prove delivery. False for every adset while no stats of the current UTC day are loaded. |
+| `HasStatsForDay(string day)` | bool | The adset delivered on that day (same activity test as `IsActiveToday`). `day`: `"today"` (current UTC day), `yyyy-MM-dd` or `yyyyMMdd` (`KillDateKey`). A day outside the loaded range is false; any other format throws. |
+| `IsAdsetDeleted` | bool | **Legacy, always false**: nothing sets it. Don't use it; use `IsActiveToday` / `HasStatsForDay` for delivery and `Status` for the CK status. |
 | `CreatedDays` | double | Fractional days since the adset was created. |
 | `KillDateKey` | string? | UTC day of the kill as `yyyyMMdd` (no dashes, unlike `History` keys). |
 | `LocalHour` | int | Current hour in the adset's country (0-23). Day keys are UTC, so near midnight UTC the country can be on another calendar day. |
