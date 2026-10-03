@@ -102,7 +102,7 @@ If one fits, run it with `run_stat_query` (`queryId` or `queryName`) and pass `p
 - `compileErrors`: line and column count from the start of your code. Fix and run again.
 - `parameterErrors`: an unknown parameter name or a value of the wrong type.
 - `results`, plus `errors` / `notes` from your code, `warnings` from the system (data skipped for being over the limits) and `fatalException` when the query threw, ran over 2 minutes, or recursed too deep ("Recursion too deep").
-- `fatalException` starting with "The server is busy": no query slot freed up within 30 seconds, so the query did not run. Wait a minute and retry. It is not a problem with your code.
+- `fatalException` starting with "The server is busy": no query slot freed up within 45 seconds, so the query did not run. Wait a minute and retry. It is not a problem with your code.
 - `fatalException` starting with "The server is low on memory": the query did not run. Retry in a few minutes and, if you can, load fewer days. It is not a problem with your code.
 
 If a result was skipped for size, narrow it (fewer items, fewer fields) and run again.
@@ -186,7 +186,7 @@ When the user wants their own query for the **Queries** editor (Stats page → Q
 - **`Name` is the theme or vertical name**, not the adset name. Use `Vertical.Name` for the vertical.
 - **Enums change during development.** Don't trust enum values from memory or from this skill: `get_stat_response_adset_definition` lists the current ones. To know which values actually occur, query them first (example below). Affiliates are data, not an enum: filter on `AffiliateName` or `AffiliateModel.FeedType`.
 - **Loading is the slow part.** Load once and reuse the list. Stats are cached for a minute, so repeating a query soon after is fast. A query that runs over 2 minutes is stopped.
-- **Run queries one after another, not in parallel.** At most 4 queries run at once on the server (3 per division), shared with everyone else; the rest wait up to 30 seconds. A note "Waited N seconds for a free query slot" means the server was busy. Combine questions into one query instead of firing many at once.
+- **Run queries one after another, not in parallel.** At most 8 queries run at once on the server (6 per division), shared with everyone else; the rest wait up to 45 seconds. A note "Waited N seconds for a free query slot" means the server was busy. Combine questions into one query instead of firing many at once.
 - **Output limits**: at most 50 `AddData` entries, 20,000 characters per value, 100,000 in total. Over that, the entry is skipped with a warning.
 
 ## Examples

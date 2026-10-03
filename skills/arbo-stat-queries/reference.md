@@ -30,7 +30,7 @@ public class CompiledScriptQuery : ScriptQuery
 - If it throws, the run stops: results added before that are returned together with the exception.
 - A query that runs over 2 minutes is stopped the same way, wherever it is (inside a loop or a LINQ lambda too).
 - Recursion that goes too deep (a local function or lambda calling itself without end) stops the query with "Recursion too deep" in `fatalException`.
-- At most 4 queries run at once on the server (3 per division). When all slots stay taken for 30 seconds, the query doesn't run and `fatalException` says the server is busy; retry a minute later. A query that ran over its time limit keeps its slot until it really stops.
+- At most 8 queries run at once on the server (6 per division). When all slots stay taken for 45 seconds, the query doesn't run and `fatalException` says the server is busy; retry a minute later. A query that ran over its time limit keeps its slot until it really stops.
 - When the server is nearly out of memory, a query doesn't start and `fatalException` says the server is low on memory; retry a few minutes later, loading fewer days if you can.
 - When it adds no data at all, an error "The query produced no data" is added to the result.
 
