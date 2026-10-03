@@ -100,6 +100,34 @@ return Include();
 | `ToAnotherAccount()` | Transfer (rebuild) the ad on another account of the same type, picked at random from accounts not already used by this offer. If none is found the adset is dropped. Initial budget 200 cents. |
 | `ToAnotherSpecificAccount(string name)` | Same, to the named account. An unknown or wrong-type name falls back to a random valid account. |
 
+### Accounts the division can use: `GetSupportedAccounts(...)`
+
+`GetSupportedAccounts(Func<TrafficAccount, bool>? predicate = null)` returns the division's **currently enabled** traffic accounts (Facebook and TikTok), optionally filtered. It is the same list publishing picks accounts from, refreshed every few minutes, so use it instead of **hardcoding account names**: accounts get added, disabled and filled up, and a hardcoded list goes stale (a stale name silently falls back to a random account).
+
+Each account has: `Name` (what `ToAnotherSpecificAccount` takes), `ActId`, `TrafficProvider`, `Type` (`TrafficAccountType`, the account family that must match the adset's `ad.AffiliateModel.AccountType`), `IsScaleEnabled`, `AdsetCount` (all adsets in CK on that account, any status) and `HasValidAdsetsCount()` (true when the account can still take adsets: empty, or scaling enabled and under 900 adsets).
+
+- The type name `TrafficAccount` is not imported: use `var` (or the full name `CK.TrafficProvidersCore.Models.TrafficAccount` for a typed member).
+- Call it in init (once) and keep the result in a member; calling it per adset works but repeats the work.
+- Filter on the adset's provider and account family, so the name is valid for the transfer.
+
+```csharp
+#region members
+Dictionary<TrafficAccountType, List<string>> AccountsByType = new();
+#endregion
+
+#region init
+TagName = "s:replicate";
+AccountsByType = GetSupportedAccounts(x => x.TrafficProvider == TrafficProvider.Facebook && x.HasValidAdsetsCount())
+    .GroupBy(x => x.Type)
+    .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
+#endregion
+
+if (ad.Status != AdsetStatus.Active || ad.Profit.Value < 30 || ad.LastTransferUtcHours < 2) return Ignore();
+if (!AccountsByType.TryGetValue(ad.AffiliateModel.AccountType, out var names)) return Ignore();
+var target = names.FirstOrDefault(x => x != ad.TrafficAccountName);
+return target == null ? Ignore() : ToAnotherSpecificAccount(target).WithComment("profit > 30$, replicate to another account");
+```
+
 ### `ActionChangeBudgetByPercentageRequest` (all money in cents)
 
 | Property | Default | Meaning |
@@ -133,7 +161,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `Status` | `AdsetStatus` | Current status. |
 | `TrafficProvider` | `TrafficProvider` | Facebook / Taboola / Tiktok ... |
 | `TrafficAccountName`, `TrafficAccountId`, `TrafficCampaignId` | string | Account and campaign. |
-| `Origin` | `FacebookAdsetOrigin` | How the adset was created (regular publish, clone, cap clone, transfer ...). |
+| `Origin` | `AdsetOrigin` | How the adset was created (regular publish, clone, cap clone, transfer ...). |
 | `OriginalAdsetId` | string? | Adset this one was created from (clone, cap clone, transfer or replicate to another account): the direct parent, so a chain A -> B -> C has C pointing to B. Empty when none. Transfers and replicates carry it only from 2026-09-27; older ones are empty. |
 | `IsAdsetDeleted` | bool | Adset deleted on the provider. |
 | `CreatedDays` | double | Fractional days since the adset was created. |
@@ -152,6 +180,8 @@ Running the script only creates **groups**, one per action type and configuratio
 | `CountryAndVertical` | string | `"<COUNTRY>-<Name>"`, e.g. `"US-Cars"`. |
 | `Vertical`, `Theme` (nullable), `Division` | `IdDocument` | Use `.Name` (also `.SlugId`, `.Id`). |
 | `ArticleName` | string | Internal article name: the search keyword on OH and Yahoo (`el-sparkesykler seniorer`), a URL slug on FLW. **Not the published title**, so not relevant for title work: use `Title` / `Anchor`. |
+| `ArticleCategory` | `ArticleCategoryType` | Real category of the article (Auto, Finance, Health, ...), classified per title when the article was generated, independent of the division's vertical. Useful as a second vertical check, e.g. adsets whose `Vertical.Name` says one thing while the article is really about another. `Unknown` for OH and Yahoo articles and for articles created before 2026-10-03, so filter `!= ArticleCategoryType.Unknown` before grouping by it. |
+| `ChannelId` | string? | Google AdSense channel of the RSOC article: the key the article's revenue is tracked by. Plumbing, rarely useful for analysis; mainly for matching an adset to AdSense revenue data. `null` when the adset has none. |
 | `IsArticleDeleted` | bool | Article deleted. |
 | `ImagePromptName` | string? | Name of the saved image prompt (see `list_image_prompts`) that generated the adset's creative. `null` = the default prompt, or no saved prompt (another image pipeline, or an adset created before prompt tracking started on 2026-09-26). Clones keep their source's value. |
 | `Title` | string | The published title (ad text) in the original language. |
@@ -165,7 +195,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `Affiliate` | int | Affiliate id (a plain number, not an enum). |
 | `AffiliateName` | string | Affiliate name. The easiest thing to compare. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
-| `AffiliateModel.FacebookAccountType` | `TrafficAccountType` | Account family (the property keeps its old name, the enum is `TrafficAccountType`). |
+| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the adset needs (FLW, OH, Yahoo, ...): only accounts of this `Type` can take it. Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
 
 ### Siblings (other loaded adsets of the same offer and country)
@@ -271,13 +301,14 @@ Enums change during development: these lists are a snapshot and can be out of da
 
 - `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`, `Terminated` (permanent kill set by a person in the UI; same as Killed for scripts, but no group, budget or cap change is ever applied to it, so filter it out like Killed: `ad.Status is AdsetStatus.Killed or AdsetStatus.Terminated`)
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
-- `FacebookAdsetOrigin`: `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `Ui_CountryPublish`
+- `AdsetOrigin` (named `FacebookAdsetOrigin` before; that name no longer compiles): `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `TransferToTiktok`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`
 - `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `Preset` (the older preset automation), `HourRule`, `Yesterday`, `EndOfDay`
 - `TrendDirection`: `Flat`, `Up`, `Down`
 - `AdsetCollectionTrend`: `MinimumNotMet`, `Mixed`, `MoreNegative`, `MorePositive`, `AlwaysPositive`, `AlwaysNegative`
 - `AffiliateFeedType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `WordlineSearchRsoc`, `SearchRsoc2`, `SearchRsoc3`, `N2sJam`, `SearchRsocSt`, `FlwVoluum`
 - `TrafficAccountType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `MiraSearch`
+- `ArticleCategoryType`: `Unknown`, `Auto`, `Beauty`, `Education`, `Employment`, `Finance`, `Health`, `HomeImprovement`, `Law`, `Lifestyle`, `Miscellaneous`, `RealEstate`, `Services`, `Shopping`, `Technology`, `Travel`
 - `AverageTrendType`: `Unknown`, `More`, `Less`
 
 ## 6. Namespaces available

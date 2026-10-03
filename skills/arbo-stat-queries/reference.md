@@ -66,7 +66,7 @@ Limits: at most 50 `AddData` entries, 20,000 characters per value, 100,000 chara
 
 **Only for testing arbo scripts** before they are proposed or saved (the **arbo-scripts** skill, step 7). Never use it to answer questions about adsets: filter them with LINQ in the query itself.
 
-`await RunTestScript(string scriptCode, List<StatResponseAdset> adsets)` dry-runs arbo script code (the Scripts editor text, see the **arbo-scripts** skill) on `adsets` and returns a `RunScriptResult`. Nothing is applied. Pass the code as a raw string literal (`"""..."""`). Last execution and stat collection times are null, as on a first run.
+`await RunTestScript(string scriptCode, List<StatResponseAdset> adsets)` dry-runs arbo script code (the Scripts editor text, see the **arbo-scripts** skill) on `adsets` and returns a `RunScriptResult`. Nothing is applied. Pass the code as a raw string literal (`"""..."""`). Last execution and stat collection times are null, as on a first run. The script runs for the query's division, so `GetSupportedAccounts(...)` in the script returns that division's live accounts.
 
 | Member | Meaning |
 |---|---|
@@ -116,7 +116,7 @@ The list includes every adset that has stats on any loaded day, also adsets kill
 | `Status` | `AdsetStatus` | Current status. |
 | `TrafficProvider` | `TrafficProvider` | Facebook / Taboola / Tiktok ... |
 | `TrafficAccountName`, `TrafficAccountId`, `TrafficCampaignId` | string | Account and campaign. |
-| `Origin` | `FacebookAdsetOrigin` | How the adset was created (regular publish, clone, cap clone, replicate to another account, transfer ...). |
+| `Origin` | `AdsetOrigin` | How the adset was created (regular publish, clone, cap clone, replicate to another account, transfer ...). |
 | `OriginalAdsetId` | string? | Adset this one was created from (clone, cap clone, transfer or replicate to another account): the direct parent, so a chain A -> B -> C has C pointing to B. Empty when none. Transfers and replicates carry it only from 2026-09-27; older ones are empty. |
 | `IsAdsetDeleted` | bool | Adset deleted on the provider. |
 | `CreatedDays` | double | Fractional days since the adset was created. |
@@ -135,6 +135,8 @@ The list includes every adset that has stats on any loaded day, also adsets kill
 | `CountryAndVertical` | string | `"<COUNTRY>-<Name>"`, e.g. `"US-Cars"`. |
 | `Vertical`, `Theme` (nullable), `Division` | `IdDocument` | Use `.Name` (also `.SlugId`, `.Id`). |
 | `ArticleName` | string | Internal article name: the search keyword on OH and Yahoo (`el-sparkesykler seniorer`), a URL slug on FLW. **Not the published title**, so not relevant for title work: use `Title` / `Anchor`. |
+| `ArticleCategory` | `ArticleCategoryType` | Real category of the article (Auto, Finance, Health, ...), classified per title when the article was generated, independent of the division's vertical. Useful as a second vertical check, e.g. adsets whose `Vertical.Name` says one thing while the article is really about another. `Unknown` for OH and Yahoo articles and for articles created before 2026-10-03, so filter `!= ArticleCategoryType.Unknown` before grouping by it. |
+| `ChannelId` | string? | Google AdSense channel of the RSOC article: the key the article's revenue is tracked by. Plumbing, rarely useful for analysis; mainly for matching an adset to AdSense revenue data. `null` when the adset has none. |
 | `IsArticleDeleted` | bool | Article deleted. |
 | `ImagePromptName` | string? | Name of the saved image prompt (see `list_image_prompts`) that generated the adset's creative. `null` = the default prompt, or no saved prompt (another image pipeline, or an adset created before prompt tracking started on 2026-09-26). Clones keep their source's value. |
 | `Title` | string | The published title (ad text) in the original language. |
@@ -148,7 +150,7 @@ The list includes every adset that has stats on any loaded day, also adsets kill
 | `Affiliate` | int | Affiliate id (a plain number, not an enum). |
 | `AffiliateName` | string | Affiliate name. The easiest thing to compare. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
-| `AffiliateModel.FacebookAccountType` | `TrafficAccountType` | Account family (the property keeps its old name, the enum is `TrafficAccountType`). |
+| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the adset needs (FLW, OH, Yahoo, ...): only accounts of this `Type` can take it. Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
 
 ### Siblings (other loaded adsets of the same offer and country)
@@ -256,13 +258,14 @@ Enums change during development: these lists are a snapshot and can be out of da
 
 - `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`, `Terminated` (permanent kill set by a person in the UI; treat as killed, never changeable)
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
-- `FacebookAdsetOrigin`: `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `Ui_CountryPublish`
+- `AdsetOrigin` (named `FacebookAdsetOrigin` before; that name no longer compiles): `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `TransferToTiktok`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`
 - `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `Preset` (the older preset automation), `HourRule`, `Yesterday`, `EndOfDay`
 - `TrendDirection`: `Flat`, `Up`, `Down`
 - `AdsetCollectionTrend`: `MinimumNotMet`, `Mixed`, `MoreNegative`, `MorePositive`, `AlwaysPositive`, `AlwaysNegative`
 - `AffiliateFeedType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `WordlineSearchRsoc`, `SearchRsoc2`, `SearchRsoc3`, `N2sJam`, `SearchRsocSt`, `FlwVoluum`
 - `TrafficAccountType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `MiraSearch`
+- `ArticleCategoryType`: `Unknown`, `Auto`, `Beauty`, `Education`, `Employment`, `Finance`, `Health`, `HomeImprovement`, `Law`, `Lifestyle`, `Miscellaneous`, `RealEstate`, `Services`, `Shopping`, `Technology`, `Travel`
 - `AverageTrendType`: `Unknown`, `More`, `Less`
 
 ## 6. Namespaces available

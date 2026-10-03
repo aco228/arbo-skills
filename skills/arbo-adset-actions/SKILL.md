@@ -73,7 +73,7 @@ A division almost always runs ads in several accounts. When an adset performs we
 
 **Matching accounts.** Work with account **names**.
 1. Call `get_traffic_accounts`. It lists the accounts that can receive replicates (enabled and enabled for scale) with their `Type`.
-2. The adset's current account is `TrafficAccountName` in the stats, and the account type it needs is `AffiliateModel.FacebookAccountType`. Only accounts with that same `Type` are valid targets.
+2. The adset's current account is `TrafficAccountName` in the stats, and the account type it needs is `AffiliateModel.AccountType`. Only accounts with that same `Type` are valid targets.
 3. Never the account the adset already runs in. Prefer accounts where the **offer** (`OfferId`) isn't already running: check in the stats which accounts already have an active adset of the same `OfferId`, and skip those. Spread over accounts rather than stacking many replicates into one.
 
 The server rejects an unknown name, a name of another type, an account not enabled for scale, and the adset's own account.
@@ -128,6 +128,6 @@ Report accepted counts per tool, the tag, and whether they were **executed** or 
 - Inventing a new tag for adsets that already carry the tag of the same idea.
 - Comments that repeat the adset id, country or new budget instead of the reason.
 - Replicating a decaying adset, or one with a single good day on tiny spend.
-- Guessing account names or picking an account of the wrong type: take the names from `get_traffic_accounts` and match `Type` with the adset's `AffiliateModel.FacebookAccountType`.
+- Guessing account names or picking an account of the wrong type: take the names from `get_traffic_accounts` and match `Type` with the adset's `AffiliateModel.AccountType`.
 - Replicating into an account where the same offer is already running, or into the adset's own account (use `submit_adset_duplicates` for a copy in the same account).
 - Expecting the replicate in the stats right after the submit. It shows up only after generation and publishing.

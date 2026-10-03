@@ -15,7 +15,7 @@ var strongRoi = Param("strongRoi", 50.0, "Source ROI in percent on the clone day
 var adsets = await LoadStatsTodayWithDays(days);
 var byId = adsets.GroupBy(x => x.AdsetId).ToDictionary(g => g.Key, g => g.First());
 var now = DateTime.UtcNow;
-var clonesAll = adsets.Where(x => (x.Origin == FacebookAdsetOrigin.TrafficAdsetCloneWithCap || x.Origin == FacebookAdsetOrigin.AiCloneWithCap) && byId.ContainsKey(x.OriginalAdsetId ?? "")
+var clonesAll = adsets.Where(x => (x.Origin == AdsetOrigin.TrafficAdsetCloneWithCap || x.Origin == AdsetOrigin.AiCloneWithCap) && byId.ContainsKey(x.OriginalAdsetId ?? "")
   && (feed == "" || x.AffiliateModel.FeedType.ToString().Equals(feed, StringComparison.OrdinalIgnoreCase))).ToList();
 var perDay = clonesAll.GroupBy(x => now.AddDays(-x.CreatedDays).ToString("yyyy-MM-dd")).ToDictionary(g => g.Key, g => g.Count());
 var sorted = perDay.Values.OrderBy(v => v).ToList();
@@ -121,7 +121,7 @@ var sig = rows.Where(r => r.signal != "").ToList();
 
 // Earlier cap clones of the candidates (clones that never had a stats row are invisible here)
 var hist = (await LoadStatsTodayWithDays(historyDays))
-  .Where(x => (x.Origin == FacebookAdsetOrigin.TrafficAdsetCloneWithCap || x.Origin == FacebookAdsetOrigin.AiCloneWithCap) && !string.IsNullOrEmpty(x.OriginalAdsetId))
+  .Where(x => (x.Origin == AdsetOrigin.TrafficAdsetCloneWithCap || x.Origin == AdsetOrigin.AiCloneWithCap) && !string.IsNullOrEmpty(x.OriginalAdsetId))
   .GroupBy(x => x.OriginalAdsetId).ToDictionary(g => g.Key, g => g.OrderBy(c => c.CreatedDays)
      .Select(c => $"{Math.Round(c.CreatedDays, 1)}d ago cap {c.CostCap.History.Values.FirstOrDefault(v => v > 0)}c {c.Status}: spend {Math.Round(c.Spend.Overall)}$ profit {Math.Round(c.Profit.Overall)}$").ToList());
 List<string> H(string id) => hist.TryGetValue(id, out var l) ? l : new List<string>();
