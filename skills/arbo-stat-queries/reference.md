@@ -150,7 +150,7 @@ The list includes every adset that has stats on any loaded day, also adsets kill
 | `Affiliate` | int | Affiliate id (a plain number, not an enum). |
 | `AffiliateName` | string | Affiliate name. The easiest thing to compare. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
-| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the adset needs (FLW, OH, Yahoo, ...): only accounts of this `Type` can take it. Was `FacebookAccountType` before; that name no longer compiles. |
+| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the affiliate is configured for (FLW, OH, Yahoo, ...). The adset can only be transferred or replicated to accounts of this `Type` **and** of the same `TrafficProvider`. Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
 
 ### Siblings (other loaded adsets of the same offer and country)

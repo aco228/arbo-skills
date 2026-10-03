@@ -97,35 +97,47 @@ return Include();
 | `CloneWithBudget(int cents)` | Clone with that budget. Used only if > 150 cents, otherwise the source budget. |
 | `CloneAsCap(int newBudgetCents)` | Clone as a cost-cap adset with an auto cap (as `CreateCostCap`) and this budget. |
 | `CloneWithCap(int capCents, int newBudgetCents)` | Clone as a cost-cap adset with an explicit cap (used if > 3) and budget. |
-| `ToAnotherAccount()` | Transfer (rebuild) the ad on another account of the same type, picked at random from accounts not already used by this offer. If none is found the adset is dropped. Initial budget 200 cents. |
-| `ToAnotherSpecificAccount(string name)` | Same, to the named account. An unknown or wrong-type name falls back to a random valid account. |
+| `ToAnotherAccount()` | Transfer (rebuild) the offer on another account with new creatives: a new adset, the source stays as it is. Initial budget 200 cents. The target is picked at random from **valid accounts** (see "Which accounts can take an adset" below) where no loaded adset of the same offer runs. If there is none, or the adset's own account is disabled, the adset is dropped. |
+| `ToAnotherSpecificAccount(string name)` | Same, to the named account. A name that is not a valid account for this adset (unknown, disabled, full, another traffic provider, another account type, or the adset's own account) **silently falls back to a random valid account** other than the adset's own. If there is no valid account at all, nothing is created. Not checked: whether the offer already runs in the named account, so filter that yourself. |
+
+### Which accounts can take an adset
+
+Accounts are **not interchangeable**. An adset can only go to an account that matches it on **both**:
+
+1. **Traffic provider**: `account.TrafficProvider == ad.TrafficProvider`. A Facebook adset goes only to Facebook accounts, a TikTok adset only to TikTok accounts. Transfers never switch provider.
+2. **Account type**: `account.Type == ad.AffiliateModel.AccountType`. Every affiliate is configured for one account family (`FLW`, `OH`, `Yahoo`, `MiraSearch`), and its offers can only run on accounts of that family. An OH adset can't go to an FLW account, even on the same provider.
+
+On top of that the account must be enabled (every account `GetSupportedAccounts` returns is) and have room (`HasValidAdsetsCount()`). So "the division has 12 accounts" usually means only a few are valid targets for a given adset. Always filter per adset, never pick from the full list.
 
 ### Accounts the division can use: `GetSupportedAccounts(...)`
 
 `GetSupportedAccounts(Func<TrafficAccount, bool>? predicate = null)` returns the division's **currently enabled** traffic accounts (Facebook and TikTok), optionally filtered. It is the same list publishing picks accounts from, refreshed every few minutes, so use it instead of **hardcoding account names**: accounts get added, disabled and filled up, and a hardcoded list goes stale (a stale name silently falls back to a random account).
 
-Each account has: `Name` (what `ToAnotherSpecificAccount` takes), `ActId`, `TrafficProvider`, `Type` (`TrafficAccountType`, the account family that must match the adset's `ad.AffiliateModel.AccountType`), `IsScaleEnabled`, `AdsetCount` (all adsets in CK on that account, any status) and `HasValidAdsetsCount()` (true when the account can still take adsets: empty, or scaling enabled and under 900 adsets).
+Each account has: `Name` (what `ToAnotherSpecificAccount` takes), `ActId`, `TrafficProvider` (must match `ad.TrafficProvider`), `Type` (`TrafficAccountType`, the account family; must match `ad.AffiliateModel.AccountType`), `IsScaleEnabled`, `AdsetCount` (all adsets in CK on that account, any status) and `HasValidAdsetsCount()` (true when the account can still take adsets: empty, or scaling enabled and under 900 adsets).
 
 - The type name `TrafficAccount` is not imported: use `var` (or the full name `CK.TrafficProvidersCore.Models.TrafficAccount` for a typed member).
 - Call it in init (once) and keep the result in a member; calling it per adset works but repeats the work.
-- Filter on the adset's provider and account family, so the name is valid for the transfer.
+- Filter **per adset** on its traffic provider and account family (see "Which accounts can take an adset"). A name that fails either check is not an error: the transfer silently goes to a random account instead.
 
 ```csharp
 #region members
-Dictionary<TrafficAccountType, List<string>> AccountsByType = new();
+// Valid targets per (traffic provider, account family); an adset may only use its own key.
+Dictionary<(TrafficProvider, TrafficAccountType), List<string>> Targets = new();
 #endregion
 
 #region init
 TagName = "s:replicate";
-AccountsByType = GetSupportedAccounts(x => x.TrafficProvider == TrafficProvider.Facebook && x.HasValidAdsetsCount())
-    .GroupBy(x => x.Type)
+Targets = GetSupportedAccounts(x => x.HasValidAdsetsCount())
+    .GroupBy(x => (x.TrafficProvider, x.Type))
     .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 #endregion
 
 if (ad.Status != AdsetStatus.Active || ad.Profit.Value < 30 || ad.LastTransferUtcHours < 2) return Ignore();
-if (!AccountsByType.TryGetValue(ad.AffiliateModel.AccountType, out var names)) return Ignore();
-var target = names.FirstOrDefault(x => x != ad.TrafficAccountName);
-return target == null ? Ignore() : ToAnotherSpecificAccount(target).WithComment("profit > 30$, replicate to another account");
+if (!Targets.TryGetValue((ad.TrafficProvider, ad.AffiliateModel.AccountType), out var names)) return Ignore();
+// Accounts where this offer already runs (the adset's own account included)
+var offerAccounts = Adsets.Where(x => x.Entry.OfferId == ad.OfferId).Select(x => x.Entry.TrafficAccountName).ToHashSet();
+var target = names.FirstOrDefault(x => !offerAccounts.Contains(x));
+return target == null ? Ignore() : ToAnotherSpecificAccount(target).WithComment("profit > 30$, replicate to an account without this offer");
 ```
 
 ### `ActionChangeBudgetByPercentageRequest` (all money in cents)
@@ -195,7 +207,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `Affiliate` | int | Affiliate id (a plain number, not an enum). |
 | `AffiliateName` | string | Affiliate name. The easiest thing to compare. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
-| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the adset needs (FLW, OH, Yahoo, ...): only accounts of this `Type` can take it. Was `FacebookAccountType` before; that name no longer compiles. |
+| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the affiliate is configured for (FLW, OH, Yahoo, ...). The adset can only be transferred or replicated to accounts of this `Type` **and** of the same `TrafficProvider`. Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
 
 ### Siblings (other loaded adsets of the same offer and country)

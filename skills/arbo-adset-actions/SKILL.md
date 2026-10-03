@@ -24,7 +24,7 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 | `submit_adset_duplicates` | New copy in the same account | Only `AdsetId` and `Comment`. The copy spends its own budget. |
 | `submit_adset_clones_with_cap` | New copy with a cost cap | `CapInCents`: **cents**, 2 to 350. The copy gets a default daily budget of **50 USD**. |
 | `submit_adset_clones_with_cap_and_budget` | New copy with a cost cap and budget | `CapInCents`: **cents**, 2 to 350, and `BudgetInUsd`: **USD**, 1.5 to 70 (hard limit). Default choice is 50 USD; see below. |
-| `get_traffic_accounts` | Nothing (read-only) | Accounts that can receive replicates: `Name` and `Type`. |
+| `get_traffic_accounts` | Nothing (read-only) | Accounts that can receive replicates: `Name`, `TrafficProvider` and `Type`. |
 | `submit_adset_replicates` | New adset with **new creatives** in **another account** | `AccountName` (from `get_traffic_accounts`). Division's default launch budget for the country, no cost cap. |
 | `submit_adset_replicates_with_budget` | Same, with your budget and optional cap | `AccountName`, `BudgetUsd`: **USD**, 1.5 to 300, `CostCap`: **cents**, 5 to 350, or null for no cap. |
 | `list_pending_adset_actions` | Nothing (read-only) | Pending actions per adset. |
@@ -72,11 +72,11 @@ A division almost always runs ads in several accounts. When an adset performs we
 **Replicate only adsets that are good now.** Strong profit and ROI over more than one day, on meaningful spend, and not declining. **Never replicate a decaying adset** (profit or ROI falling day after day, RPC collapsing, spend dropping) **unless the user explicitly asks for it.** A replicate captures a winner; it doesn't rescue a loser.
 
 **Matching accounts.** Work with account **names**.
-1. Call `get_traffic_accounts`. It lists the accounts that can receive replicates (enabled and enabled for scale) with their `Type`.
-2. The adset's current account is `TrafficAccountName` in the stats, and the account type it needs is `AffiliateModel.AccountType`. Only accounts with that same `Type` are valid targets.
+1. Call `get_traffic_accounts`. It lists the accounts that can receive replicates (enabled and enabled for scale, every traffic provider) with their `TrafficProvider` and `Type`.
+2. Not every account can take every adset. A valid target matches the adset on **both** its traffic provider (`TrafficProvider` in the stats) and its affiliate's account family (`AffiliateModel.AccountType`): every affiliate is configured for one family (FLW, OH, Yahoo, MiraSearch) and its offers can only run on accounts of that family, on the same provider. So from the `get_traffic_accounts` list keep only rows whose `TrafficProvider` equals the adset's `TrafficProvider` and whose `Type` equals its `AffiliateModel.AccountType`. The adset's current account is `TrafficAccountName`.
 3. Never the account the adset already runs in. Prefer accounts where the **offer** (`OfferId`) isn't already running: check in the stats which accounts already have an active adset of the same `OfferId`, and skip those. Spread over accounts rather than stacking many replicates into one.
 
-The server rejects an unknown name, a name of another type, an account not enabled for scale, and the adset's own account.
+The server rejects an unknown name, an account of another traffic provider or another account type, an account not enabled for scale, and the adset's own account.
 
 **Budget.** `submit_adset_replicates` uses the division's default launch budget for the country, the same as a new title test. That is the default choice. Use `submit_adset_replicates_with_budget` only when the user gives a budget or a clear reason exists (a very strong winner worth a faster start); a replicate is untested in its new account, so keep the budget modest, and show the total new daily budget in the plan. Add a `CostCap` only when the user asks for one or the source runs on a cap; it follows the same logic as a cap clone (cents, below the source's revenue per conversion but not far below).
 
@@ -128,6 +128,6 @@ Report accepted counts per tool, the tag, and whether they were **executed** or 
 - Inventing a new tag for adsets that already carry the tag of the same idea.
 - Comments that repeat the adset id, country or new budget instead of the reason.
 - Replicating a decaying adset, or one with a single good day on tiny spend.
-- Guessing account names or picking an account of the wrong type: take the names from `get_traffic_accounts` and match `Type` with the adset's `AffiliateModel.AccountType`.
+- Guessing account names or picking an account of the wrong provider or type: take the names from `get_traffic_accounts` and match both `TrafficProvider` (with the adset's `TrafficProvider`) and `Type` (with its `AffiliateModel.AccountType`).
 - Replicating into an account where the same offer is already running, or into the adset's own account (use `submit_adset_duplicates` for a copy in the same account).
 - Expecting the replicate in the stats right after the submit. It shows up only after generation and publishing.
