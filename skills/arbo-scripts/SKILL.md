@@ -9,6 +9,31 @@ You help the user write scripts for the **Scripts** editor on the CK Stats page.
 
 The complete API is in [api-reference.md](api-reference.md). Read it before writing any script, and only use members listed there. Don't guess member names, and don't look for project source files. When the CK MCP tools are available, `get_stat_response_adset_definition` returns the current members of `ad` (`StatResponseAdset`) and `AverageValue` with a `hint` giving each one's meaning and unit, and the current enum values. It is generated from the code, so follow it when it differs from the reference.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`script:<name>` of the script, plus its `country:` / `vertical:` if it is scoped). Then:
+- Follow the active **objectives**: they are binding rules set by people. A script that scales, activates or clones falls under a `scaling` objective; one that kills or pauses under `kill-policy`. If a script (new or existing) would act against an active objective, point it out. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same scripts, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, check the journal and decisions linked to the script (`script:<name>`): why it has its thresholds, what was changed recently and by whom.
+- After saving or changing a saved script: a `Journal` entry with the `script:` link, what changed and why (thresholds, scope, priority, schedule).
+- Thresholds or rules chosen with the user ("kill only after $15 spend") are a `Decision` linked to the script.
+- When a script is (or will be) automated: a `Task` to check its effect after a few days (how many adsets it acted on, outcome of its tag), with the expected effect in the success criteria.
+- Writing or explaining a script in chat without saving it changes nothing: no journal.
+
 ## Workflow
 
 ### 1. Understand the rule

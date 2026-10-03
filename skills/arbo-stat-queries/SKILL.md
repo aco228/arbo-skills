@@ -54,6 +54,29 @@ Pick the load by the newest day you need (`Today` if today matters, else `Yester
 
 **Additive** metrics (Spend, Revenue, Profit, Clicks, Impressions, Conversions) sum: `Overall`, `SumLastDays`, `SumDaysAgo` are all right. For **ratio** metrics (ROI, CTR, CR, CPM, RPM, ROAS, cost / revenue per ...) `Overall` is recomputed from the period totals, so `x.CTR.Overall` is the true CTR of the loaded days. For a ratio over part of the period, divide sums of its parts: `x.Clicks.SumLastDays(3) / x.Impressions.SumLastDays(3) * 100`. `Budget`, `CostCap` and `PTQS` have no meaningful total: use `Value` or `Average`.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (the `country:` / `vertical:` / `affiliate:` / `tag:` of the question). Then:
+- Follow the active **objectives**: they are binding rules set by people. Objectives rarely change how you answer, but mention one when the answer leads to an action it governs. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same topics, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- Queries only read data, so most runs write nothing. For a quick lookup, the briefing is optional; for an analysis that leads to a decision, read it, and check insights linked to the scope so you don't redo a recent analysis (re-run its `query:` instead).
+- Write an `Insight` only for a durable conclusion the user wants kept or confirms (e.g. "DE health titles with prices in the headline lose"), always with the saved query (`query:` link) and the key numbers in the snapshot. Never store raw totals that a query can answer again.
+- Saving, updating or deleting a saved agentic query is a change: a `Journal` entry with the `query:` link.
+
 ## Workflow for answering a question
 
 ### 1. Look for an existing query

@@ -21,6 +21,29 @@ Tools used: `run_stat_query` (and `save_agentic_query` only to restore the scout
 
 If the user says only "submit", use **Review**. Use **Generation** only when the user explicitly asks to launch or generate. Use **Recommendations** only when they ask for recommendations or suggestions. Review and Generation both need an affiliate per title.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`country:` / `vertical:` / `feed:` you plan for). Then:
+- Follow the active **objectives**: they are binding rules set by people. New titles fall under a `new-titles` objective and extra spend under `scaling`; size the batch within them. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same countries, verticals and angles, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, check the journal and open tasks for recent scout batches in the same scope, so you don't propose the same angles again, and insights about winning and losing angles there.
+- After measuring: an `Insight` with the sizing numbers (hit rate, cost of a failed test, profit of a winner, ROI floor), `query:` link and snapshot, superseding the previous one for the same scope, so the next run can compare.
+- After submitting a batch: a `Journal` entry (count, placement, tag) and a review `Task` after the test window, linked to the tag, with the expected hit rate and spend in the snapshot and success criteria.
+
 ## Workflow
 
 ### 1. Scope

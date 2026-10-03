@@ -34,6 +34,29 @@ The offer counts cover cap adsets seen in the last 6 days, **killed ones include
 
 The candidates query applies rules 1 to 4 for you. The thresholds (how much profit, ROI and conversions make a clear signal) are **not fixed**: take them from the study in step 2.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`affiliate:` / `country:` you scan). Then:
+- Follow the active **objectives**: they are binding rules set by people. Cap clones fall under `cap-clones` and `scaling` objectives; respect them before suggesting any clone. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same offers and adsets, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, look for the last calibration: `memory_search` with `types=Insight` and `text="cap-scout calibration"`. If one exists and isn't past its review date, reuse its thresholds and cap rule (say so), and run the study only to spot-check; otherwise run the full study.
+- After a new study: save (or supersede the previous) `Insight` "cap-scout calibration" with the thresholds (profit, ROI, conversions, RPC), the cap rule, `query:` link, snapshot of the key numbers and `reviewInDays=14`.
+- After submitting clones: a `Journal` entry (count, tag, offers) and a review `Task` due the next day, linked to the tag, with the suggested caps and source RPC in the snapshot and success criteria (caps spending, ROI above the floor).
+
 ## Workflow
 
 ### 1. Scope

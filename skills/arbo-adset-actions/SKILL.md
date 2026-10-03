@@ -97,6 +97,29 @@ These two fields are how changes are found and judged later. They matter as much
 - **`tagName`** is written on the changed adsets. Queries and scripts filter and group adsets by it, so one tag stands for one idea, from launch through every later change. Reuse the tag the adsets already belong to (the `t:...` tag they were launched with, or the tag of the optimization you are continuing). Only for a new idea, create a short, stable one in the form `a:camelCaseName` (e.g. `a:scaleWinnersDe`), and keep using it. Propose the tag to the user with the list.
 - **`Comment`** is a short reason and, when useful, the expected outcome: `"ROI 45% on 20$ spend over 3 days, scale to test headroom"`, `"3 days negative after 40$ spend, no recovery trend"`. It is stored on the change and analysed later against what actually happened. Never put in it what is already recorded or filterable: adset id, country, vertical, old or new value, date. Keep it to one line.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (the batch `tag:`, and the `country:` / `vertical:` of the adsets). Then:
+- Follow the active **objectives**: they are binding rules set by people. Budget increases, activations, clones and replicates fall under a `scaling` objective; kills and pauses under `kill-policy`. Quote the objective you apply in the plan. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same adsets, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- After every submit: a `Journal` entry with the tag, the action type, the number of adsets and the total daily budget change (e.g. "Cut budget 30% on 12 DE health adsets with 3-day ROI < -40%, tag s:aiCut, -$84/day").
+- Every batch that adds spend (budget increases, activations, clones, cap clones, replicates): a review `Task` due the next morning (`dueInHours` ~18), linked to the tag, with a snapshot of the source numbers (adset count, total daily budget before and after, source ROI and spend), success criteria (e.g. "4 of 6 clones with ROI > 20% after 24h") and next steps (what to kill or keep).
+- A rule the user states for future batches ("never pause on weekends", "max $30 per replicate") is a `Decision` (or, if it should bind every agent, ask whether they want it as an objective).
+
 ## Workflow
 
 ### 1. Understand the goal

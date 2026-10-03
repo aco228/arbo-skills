@@ -221,6 +221,30 @@ Rules for variations:
 - **Name**: a very short camelCase identifier used to recognise the prompt in lists and stats, e.g. `default`, `editorialV1`, `saleV1`, `comparePoster`, `flatIllustration`. Letters and digits only, starting lowercase, at most about 20 characters. Suggest one, and when you iterate on the same design, bump the version (`saleV2`). The name is stored on every adset it generates (`ImagePromptName` in stats, `null` for the default prompt), so a new version is tracked separately and renaming a prompt splits its history.
 - **Description**: 1–3 sentences in plain English describing the look, the layout and when it fits, e.g. "Bold editorial poster: headline in the top half over a pale background, one cut-out hero subject, a small localized search tag under the headline. Works for most verticals; best for product-category topics."
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`prompt:` of the prompt you work on, plus `affiliate:` / `feed:` if it is targeted). Then:
+- Follow the active **objectives**: they are binding rules set by people. Respect any objective about creatives or image prompts. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same prompts, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, look for insights and notes linked to `prompt:` names or creatives (what performed, brand or style rules the user gave before) and use them in the design.
+- After saving a prompt: a `Journal` entry with the `prompt:` link and what changed and why.
+- A style direction or rule the user chooses ("no people in images for health", "always flat illustrations for finance") is a `Decision` or `Note` linked to the prompt or feed.
+- A new or reworked prompt that goes live: a `Task` to review its performance after about 7 days (`dueInHours` ~168): CTR, ROI and profit grouped by `ImagePromptName` against the default, with the comparison baseline in the snapshot.
+
 ## Workflow
 
 0. **Know what exists.** When the user starts a new prompt, call `list_image_prompts` to see the names and descriptions already in use (own and public). Don't propose a name that is taken, and mention a similar existing prompt if there is one. When the user refers to an existing prompt ("improve saleV1", "make a warmer version of default"), load it with `get_image_prompt` and work from its variations.

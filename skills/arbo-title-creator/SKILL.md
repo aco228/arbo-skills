@@ -22,6 +22,30 @@ This skill is self-contained. It works in the Claude web or desktop app and in C
 
 The MCP tool prefix differs per person; refer to tools by their function name (`QueryAdsets`, `GetAdsetPerformance`, `GetWorkingArticleTitlesFromPartnerNetwork`, `SetNewArticleTitles`, `SubmitTitlesForGeneration`, `get_affiliate_providers`, `get_verticals`, `get_traffic_accounts`). The MCP connection already determines the division. Never work across divisions.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`vertical:` / `country:` / `affiliate:` of the titles). Then:
+- Follow the active **objectives**: they are binding rules set by people. New titles fall under a `new-titles` objective (and `scaling` when they add spend); respect it before submitting. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same verticals and countries, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, look for insights, decisions and notes linked to the vertical and country: what wins and loses, and title preferences the user gave before. Apply them and say which.
+- After submitting titles (as recommendations or for generation): a `Journal` entry with the count, vertical, country and tag.
+- A preference the user states for titles ("no questions in DE titles", "always include the year") is a `Note` linked to the vertical, country or affiliate, so the next run follows it.
+- Titles submitted for generation: a review `Task` after the test window (about 3 days), linked to the tag, with the titles' angles in the handover.
+
 ## Workflow
 
 ### 1. Scope

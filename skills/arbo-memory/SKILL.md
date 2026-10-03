@@ -41,7 +41,7 @@ Before planning or changing anything (adsets, scripts, titles, prompts), call `m
 
 ### 3. Write with intent
 
-Write when it helps a later reader, not after every step:
+At the end of every run, go through this check (every arbo skill has the same one in its "Shared memory" section). Write only what qualifies; "nothing worth keeping" is a valid outcome, and filler entries are worse than none:
 
 | Situation | Write |
 |---|---|

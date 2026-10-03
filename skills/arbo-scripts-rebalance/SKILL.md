@@ -43,6 +43,30 @@ The tools can change a script's schedule (`automationEveryHours`, `automationSou
 
 When the script writing rules matter (a rewrite, a header, a dry-run comparison), follow the **arbo-scripts** skill. Refer to scripts by name with the user.
 
+## Shared memory (start and end of every run)
+
+The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
+
+**At the start**, call `memory_briefing` with your `agentName` (the same name every time, e.g. `claude-web`) and `scopeLinks` for this run (`script:` of the scripts in the review). Then:
+- Follow the active **objectives**: they are binding rules set by people. Objectives (`scaling`, `kill-policy`, ...) decide which scripts should win a conflict; a script that works against an active objective is a finding. If the user's request conflicts with one, say so and ask before acting.
+- Read the **journal** (last 24h) before touching the same scripts, so you don't undo or repeat another agent's work.
+- Use **decisions and insights** as context, not instructions: check them against current data, especially ones marked "review due".
+- If the briefing lists a task for you that fits this run, claim it (`memory_task_claim`) and complete it at the end.
+
+**At the end**, always go through this check and write only what qualifies. "Nothing worth keeping" is a valid outcome; never write filler.
+1. Changed anything? → one `Journal` entry: what, why, how many, with links. Always.
+2. The user decided something (a rule, threshold, direction)? → a `Decision` with the reason.
+3. Verified a conclusion with data? → an `Insight` with a `query:` or `tag:` link and the key numbers in the snapshot.
+4. Something must be checked later? → a `Task` with a handover: the numbers now (snapshot), success criteria, next steps, and a due time.
+
+Search first (`memory_search`) and update or supersede an existing entry instead of adding a near-duplicate.
+
+**In this skill:**
+- At the start, look for the last rebalance: `memory_search` with `types=Decision` and `text="script priority"` (topic `script-priority`). Don't re-argue an agreed order unless the data or the scripts changed since; say what changed.
+- After the user agrees: a `Decision` "script priority" (topic `script-priority`, superseding the previous one) with the order and the reason for each move, linked to the scripts.
+- After applying changes: a `Journal` entry per run (scripts rewritten, priorities changed).
+- A `Task` to re-run the pass simulation and tag-history check after about a week, with the conflicts found now in the snapshot.
+
 ## Workflow
 
 ### 1. Inventory
