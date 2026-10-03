@@ -1,6 +1,6 @@
 # CK skills
 
-Agent skills for working with CK (arbo adsets, scripts, stats queries, titles, image prompts).
+Agent skills for working with CK (arbo adsets, scripts, stats queries, titles, image prompts, shared memory).
 Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills format), so the same files work in Claude, Codex and Hermes.
 
 | Skill | What it does |
@@ -8,6 +8,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 | `arbo-adset-actions` | Change live adsets: kill, pause, activate, budget, cost cap, duplicates, clones, replicates |
 | `arbo-cap-scout` | Find proven test adsets and clone them into cost cap adsets |
 | `arbo-generate-image-prompt` | Design and manage base prompts for AI ad images |
+| `arbo-memory` | Shared division memory: objectives, decisions, insights, journal, tasks with handovers |
 | `arbo-scripts` | Write, explain and fix arbo scripts |
 | `arbo-scripts-rebalance` | Review a division's automated scripts as one system |
 | `arbo-stat-queries` | Answer adset performance questions with stats queries |

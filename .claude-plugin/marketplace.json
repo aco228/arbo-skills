@@ -1,6 +1,6 @@
 {
   "name": "arbo-skills",
-  "description": "Agent skills for working with CK: adsets, scripts, stats queries, titles and image prompts",
+  "description": "Agent skills for working with CK: adsets, scripts, stats queries, titles, image prompts and shared memory",
   "owner": {
     "name": "aco228"
   },
@@ -8,7 +8,7 @@
     {
       "name": "arbo-skills",
       "source": "./",
-      "description": "CK arbo skills: adset actions, cap scout, image prompts, scripts, scripts rebalance, stats queries, title creator, title scout"
+      "description": "CK arbo skills: adset actions, cap scout, image prompts, memory, scripts, scripts rebalance, stats queries, title creator, title scout"
     }
   ]
 }
