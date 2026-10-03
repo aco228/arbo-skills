@@ -128,7 +128,7 @@ Which adsets are in the list: **every adset of the division that has stats on an
 | `CreatedDays` | double | Fractional days since the adset was created. |
 | `KillDateKey` | string? | UTC day of the kill as `yyyyMMdd` (no dashes, unlike `History` keys). |
 | `LocalHour` | int | Current hour in the adset's country (0-23). Day keys are UTC, so near midnight UTC the country can be on another calendar day. |
-| `Tags` | `List<AdsetTag>` | Tracking tags, each with `.Name`, `.Count`, `.Time` (UTC of the latest write). `t:...` = the launch tag from title submission, `s:...` = scripts and AI changes. Kept for 20 days. There is no `TagName` on the adset: find the launch tag with `x.Tags.Select(t => t.Name).FirstOrDefault(n => n.StartsWith("t:"))`. |
+| `Tags` | `List<AdsetTag>` | Tracking tags, each with `.Name`, `.Count`, `.Time` (UTC of the latest write). `.PreviousTimes`: UTC times of the earlier writes, newest first, at most one per hour and at most 50 (writes within an hour of the newest kept one are not kept again), tracked from 2026-10-03, so older writes and `.Count` don't match it. E.g. the write before the latest: `.PreviousTimes.FirstOrDefault()` (`DateTime.MinValue` when there is none); how often a script hit the adset in the last 24h: `.PreviousTimes.Count(t => t > DateTime.UtcNow.AddHours(-24))`. `t:...` = the launch tag from title submission, `s:...` = scripts and AI changes. Kept for 20 days. There is no `TagName` on the adset: find the launch tag with `x.Tags.Select(t => t.Name).FirstOrDefault(n => n.StartsWith("t:"))`. |
 
 ### Content and targeting
 | Member | Type | Meaning |

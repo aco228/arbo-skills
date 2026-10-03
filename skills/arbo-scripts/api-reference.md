@@ -181,7 +181,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `CreatedDays` | double | Fractional days since the adset was created. |
 | `KillDateKey` | string? | UTC day of the kill as `yyyyMMdd` (no dashes, unlike `History` keys). |
 | `LocalHour` | int | Current hour in the adset's country (0-23). Day keys are UTC, so near midnight UTC the country can be on another calendar day. |
-| `Tags` | `List<AdsetTag>` | Tags written by scripts (see `TagName` in section 1), newest first, kept for 20 days. Each has `.Name`, `.Count` (how many times it was written) and `.Time` (UTC of the latest write). For a cooldown use `GetLastTagInHours`. |
+| `Tags` | `List<AdsetTag>` | Tags written by scripts (see `TagName` in section 1), newest first, kept for 20 days. Each has `.Name`, `.Count` (how many times it was written) and `.Time` (UTC of the latest write). `.PreviousTimes`: UTC times of the earlier writes, newest first, at most one per hour and at most 50 (writes within an hour of the newest kept one are not kept again), tracked from 2026-10-03, so older writes and `.Count` don't match it. E.g. the write before the latest: `.PreviousTimes.FirstOrDefault()` (`DateTime.MinValue` when there is none); how often a script hit the adset in the last 24h: `.PreviousTimes.Count(t => t > DateTime.UtcNow.AddHours(-24))`. For a cooldown use `GetLastTagInHours`. |
 
 ### Content and targeting
 | Member | Type | Meaning |
