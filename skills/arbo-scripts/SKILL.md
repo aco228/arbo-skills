@@ -9,6 +9,8 @@ You help the user write scripts for the **Scripts** editor on the CK Stats page.
 
 The complete API is in [api-reference.md](api-reference.md). Read it before writing any script, and only use members listed there. Don't guess member names, and don't look for project source files. When the CK MCP tools are available, `get_stat_response_adset_definition` returns the current members of `ad` (`StatResponseAdset`) and `AverageValue` with a `hint` giving each one's meaning and unit, and the current enum values. It is generated from the code, so follow it when it differs from the reference.
 
+**Once per session, before the first script, call `get_stat_response_adset_definition` and read it as an engineer, not as a spell-checker.** Go through the members and decide which ones carry the signal for the job: which metric over which days, which counts prove the signal is real (`Conversions`, `Clicks`), which members describe the adset's size and context (`Budget`, `CostCap`, `CreatedDays`, siblings, `Vertical`, `AffiliateModel`), and which history members (tags, changes) tell you what was already done to it. Members are added and renamed while CK is developed, so the live definition often has a better fit for the rule than anything you remember or than the examples below. Reuse that reading for the rest of the session; call again only when a compile error says a member does not exist. Without the MCP tools, read the reference the same way.
+
 ## Shared memory (start and end of every run)
 
 The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
@@ -46,6 +48,31 @@ Establish, asking only for what is missing:
 
 If the user is vague ("kill the bad ones"), propose concrete thresholds and state them so they can adjust.
 
+### Think like an engineer before you write
+
+A script is a rule that runs unattended, on every adset, for weeks, and the examples in this skill are there to show the API, not to be copied with their numbers. Before writing, work through the points below. The answers go into the header (`DO`, `WHY`, `SCOPE`, `REVIEW`) and into the thresholds, and anything you could not answer from data goes into the reply.
+
+**Thresholds scale with the adset.** Adsets differ by an order of magnitude in budget, cap, payout and age, so one flat number cannot be right for all of them: 20% more budget is pocket money on a $10 adset and $100 on a $500 one; "$20 spent" is two days of data for one adset and an hour for another; a CR on 4 conversions is noise and on 80 is a fact. Ask what each number is a proxy for and write that instead:
+- "Enough data to judge" is spend relative to the adset's own size (`ad.Spend.Overall >= 2 * ad.Budget.Value`, or a few caps: `ad.CostCap.Value > 0 && ad.Spend.Overall * 100 >= 3 * ad.CostCap.Value`) together with a count of events (`ad.Conversions.Overall >= 5`), not a flat dollar figure.
+- "Losing badly" is loss relative to what the adset spends (`ad.Profit.SumLastDays(3) < -ad.Budget.Value`: lost more than a day of budget) or a ROI, not a flat `-$15`.
+- "Good" and "bad" are relative to peers. Compute the vertical, country or feed median in init from `Adsets` and compare the adset to it: -10% ROI is a loser in a vertical running at +40% and a keeper where everything sits at -30%.
+- Budget steps: `Percentage` is relative, but `MinimumChange` and `MaximumChange` are flat cents. Derive them from the adset (`MaximumChange = ad.CurrentBudgetInt / 4`) or from what it earned (don't add more budget than it made today), and keep flat values only for the floors and ceilings the user set.
+- A flat number is right only when it cannot be derived: a global ceiling the user set, "$50 is the clone budget", a minimum the platform enforces. That is a **policy constant**: name it in init, say in `WHY` who decided it, and record it as a `Decision` in memory. Everything else is an **analytical threshold** and should scale.
+
+**Names and ids are configuration, not facts.** Accounts, affiliates, verticals, themes, feeds, countries, image prompts and enum members are created, renamed and disabled in the UI while the script keeps running. A literal copied into the code (`"Account-07"`, `"FLW"`, `AffiliateName == "SomeAffiliate"`) is correct the day it is written and silently wrong later, and in the transfer case CK hides the failure by sending the adset to a random account. So:
+- Take lists from the system (`GetSupportedAccounts`) and select by property (`TrafficProvider`, `AffiliateModel.AccountType`, `AffiliateModel.FeedType`, `HasValidAdsetsCount()`, `ArticleCategory`), not by name.
+- When the user names an account, affiliate, vertical or country, that is scope the user chose, and it is fine. Put it in one place at the top of init (a `string[]` or `HashSet<string>` with a comment saying who asked and when), filter the live data by it, and make the script do nothing rather than something else when the name no longer matches (a dry run with zero matches is the signal).
+- Check that a value exists before relying on it: the live definition for enum members, a stats query for the values that occur in the division right now (distinct `AffiliateName`, `Vertical.Name`, `TrafficAccountName`). Never write them from memory.
+
+**Consequences.** Every action is money, and an automated script repeats it. Decide these for every action and write the answers into `GOAL` / `REVIEW` or into the reply:
+- Blast radius: how many adsets and how much spend it touches per run and per day. The count query and the dry run (step 7) give the number. A rule that catches most of the active adsets is not a rule, it is a mistake in the threshold.
+- Wrong by half: if the threshold is twice too loose, what does it cost? Killing a winner costs the days it took to find it and its future profit; raising a loser's budget costs the raise. Where the data is thin, use the reversible action (`Pause(hours)`, a budget change with `WithResetAfterHours`); keep `Kill()` and permanent changes for solid data.
+- Repetition: what does the rule do when it runs every 30 minutes for a week? Scaling compounds, kills accumulate. The cooldown (`GetLastTagInHours(TagName)`, `GetLastBudgetIncreaseInHours()`), the per-run cap (top N in init) and the ceiling are part of the rule, not an afterthought.
+- Edge cases of the data: today is partial and early-morning runs see yesterday as the newest day (`IsActiveToday`); new adsets have no history; a ratio without spend is 0, not undefined; `CostCap` is 0 on most adsets; `Theme` can be null; a sibling count can be 0. Each of these must land in a deliberate branch (`Ignore()` or `Include()` with a comment), never in an exception that silently skips the adset.
+- Interaction: which other automated scripts see the same adsets and who should win (step 5: priority, `PAIRS`, the other script's tag).
+
+When a point can't be settled from the data you have, say so, and leave that branch conservative (`Include()` to show the adset, not act on it) until the user decides.
+
 ### 2. Write the script
 
 Rules that must hold:
@@ -62,10 +89,10 @@ Rules that must hold:
 - `return true;` / `return false;` are shorthand for `Include()` / `Ignore()`, but only when spelled exactly like that. Prefer the explicit calls, especially inside lambdas.
 - Budgets and caps passed to actions are **cents** (`NewBudgetInUsd` is the exception). Stats money (`Spend`, `Revenue`, `Profit`, `Budget`) is **dollars**. `CostCap`, `PricePerConversion`, `CostPerConversion` and `CostPerVisit` are **cents**. ROI, CTR and CR are **percent**.
 - A metric used as a number (`ad.ROI > 20`) is the **newest day**. For multi-day judgement use the `AverageValue` helpers (see "Working with days" below).
-- **Never hardcode traffic account names** (in `ToAnotherSpecificAccount("...")`, lists of target accounts, account filters). Accounts are added, disabled and filled up over time, so a hardcoded list goes stale. Get the live list with `GetSupportedAccounts(predicate)` in init.
+- **No literals for things that change** (see "Think like an engineer"): no hardcoded traffic account names (in `ToAnotherSpecificAccount("...")`, lists of target accounts, account filters), affiliate, vertical, theme or feed names picked by you, or enum values from memory. Accounts come from `GetSupportedAccounts(predicate)` in init; everything else is selected by property or declared once at the top of init as user-chosen scope with a comment.
 - **Not every account can take every adset.** A transfer target must match the adset's **traffic provider** (`TrafficProvider == ad.TrafficProvider`) **and** its affiliate's **account family** (`Type == ad.AffiliateModel.AccountType`), and have room (`HasValidAdsetsCount()`). Filter per adset, never pick from the whole list. A name that fails these checks is not an error: `ToAnotherSpecificAccount` silently sends the adset to a random valid account instead. See api-reference, "Which accounts can take an adset". When reviewing a script that hardcodes account names or ignores provider or type, point it out and rewrite it.
 - Enums change during development. Don't write enum values from memory: check them in `get_stat_response_adset_definition`, or ask the user. Compare affiliates by `AffiliateName`, not by id.
-- Guard against thin data before judging ratios, for example `ad.Spend < 3` means you should not act on ROI yet.
+- Guard against thin data before judging ratios, and make the guard relative to the adset: a ROI on less than a day of its own budget (`ad.Spend.Overall < ad.Budget.Value`) or on a handful of conversions is noise, whatever the dollar amount. Flat thresholds (`ad.Spend < 3`) only as a floor under the relative one.
 - Avoid code that can throw (`GetAverageForDays` with no history, `.First()` on an empty sequence, `ad.Theme.Name` when `Theme` is null). A throw silently hides that adset; a dry run (step 7) reports it.
 - The body runs one adset at a time, in `Adsets` order, so members are safe to update there. Don't use `static` state: it outlives the run.
 
@@ -75,7 +102,7 @@ Every script starts with a **header comment** that says what it does and why, so
 // ================================================================================================
 // <SHORT TITLE>
 // ------------------------------------------------------------------------------------------------
-// DO:     What it does, with the exact conditions and thresholds (units included).
+// DO:     What it does, with the exact conditions and thresholds (units included; derived thresholds as the formula, e.g. "spend >= 2x budget").
 // WHY:    The reason or decision behind it (data seen, operator request).
 // GOAL:   The expected result.
 // REVIEW: What the groups should contain after a run, and what to watch in the following days.
@@ -117,6 +144,7 @@ End with how to run it: paste it into **Stats → Scripts**, click **Run** (or *
 When the user pastes a script or a compile error:
 - Compile errors look like `(line,col) CSxxxx: message`. Line and column count from the start of the script itself, so they point straight at the broken spot. An error such as a missing `}` is reported at the end of the script.
 - Check it against every rule in step 2, and point out unit mistakes and unguarded throws. Check that the header matches the code, and that an acting script has a `TagName`.
+- Go through "Think like an engineer" on it: for every flat number ask what it is a proxy for and whether it should scale with the adset; for every literal name or enum value ask whether it still exists and whether it should come from the system. Point these out and rewrite them, and say which numbers you kept as policy constants and why.
 - Return the corrected full script, not a diff.
 
 ### 5. Saved scripts (MCP tools)
@@ -192,37 +220,76 @@ The full `RunTestScript` API is in the **arbo-stat-queries** skill (reference, "
 
 ## Examples
 
-Kill losing, mature adsets and pause borderline ones. Show only those two groups:
+The numbers in these examples are illustrations. Derive yours from the data (step 6) and from the adset itself, as the first two show.
+
+Kill losing, mature adsets and pause borderline ones, judging each adset against its own size. Show only those two groups:
 
 ```csharp
-if (ad.Status != AdsetStatus.Active) return Ignore();
-if (ad.CreatedDays < 2 || ad.Spend.Overall < 20) return Ignore();   // not enough data yet
+#region init
+TagName = "s:cutLosers";
+#endregion
 
-if (ad.ROI.Overall < -40 && ad.ROI < -30) return Kill();            // multi-day and today both bad
-if (ad.ROI < -15 && ad.ProfitTrend == TrendDirection.Down) return Pause(6);
+if (ad.Status != AdsetStatus.Active || !ad.IsActiveToday) return Ignore();
+if (ad.CreatedDays < 2 || ad.Budget.Value <= 0) return Ignore();
+// Enough data to judge: about two days of its own budget spent, and real conversions behind the ratios.
+if (ad.Spend.Overall < 2 * ad.Budget.Value || ad.Conversions.Overall < 5) return Ignore();
+if (ad.GetLastTagInHours(TagName) < 12) return Ignore();                  // this script touched it recently
 
+var lost = ad.Profit.Overall;                                                // dollars, loaded days
+if (ad.ROI.Overall < -40 && lost < -ad.Budget.Value)                        // deep, and more than a day of budget lost
+    return Kill().WithComment($"ROI {ad.ROI.Overall:0}% on {ad.Conversions.Overall:0} conv, lost {-lost:0}$ = {-lost / ad.Budget.Value:0.0}x daily budget");
+if (ad.ROI.Overall < -15 && ad.ProfitTrend == TrendDirection.Down)           // thinner evidence: reversible action
+    return Pause(6).WithComment($"ROI {ad.ROI.Overall:0}% and falling, pausing to re-check");
 return Ignore();
 ```
 
-Scale winners by 15% at most once every 12 hours, with steps between $2 and $25 and a $400 ceiling:
+Scale winners by 15% at most once every 12 hours, with the step sized by the adset: never more than a quarter of its budget, never more than it earned today, and a ceiling the user set:
 
 ```csharp
-if (ad.Status != AdsetStatus.Active) return Ignore();
-if (ad.Spend < 10 || ad.ROI < 25 || ad.ROI.Overall < 15) return Ignore();
-if (ad.GetLastBudgetIncreaseInHours() < 12) return Include();       // winner, but changed recently: just show
+#region members
+const int MaxBudgetCents = 400_00;   // policy: division ceiling, set by the operator on 2026-10-04
+#endregion
 
+#region init
+TagName = "s:scaleWinners";
+#endregion
+
+if (ad.Status != AdsetStatus.Active || !ad.IsActiveToday) return Ignore();
+if (ad.Spend.Value < 0.5 * ad.Budget.Value) return Ignore();                // today too young to judge for this adset
+if (ad.ROI.Value < 25 || ad.ROI.Overall < 15 || ad.Conversions.Overall < 5) return Ignore();
+if (ad.GetLastBudgetIncreaseInHours() < 12) return Include();               // winner, but changed recently: just show
+
+var earnedTodayCents = (int)(ad.Profit.Value * 100);
+if (earnedTodayCents <= 0) return Include();                                // a winner on ROI but not on money today
 return ChangeBudgetByPercentage(new ActionChangeBudgetByPercentageRequest
 {
-    Percentage = 15, MinimumChange = 2_00, MaximumChange = 25_00, MaximumBudget = 400_00,
-});
+    Percentage = 15,
+    MinimumChange = 1_00,
+    MaximumChange = Math.Min(ad.CurrentBudgetInt / 4, earnedTodayCents),   // step scales with the adset, 0 would mean "no maximum"
+    MaximumBudget = MaxBudgetCents,
+}).WithComment($"ROI {ad.ROI.Value:0}% today / {ad.ROI.Overall:0}% period, +15% capped at today's profit {ad.Profit.Value:0}$");
 ```
 
-Clone strong adsets that have no cost cap as cap adsets with a $40 budget, unless the offer already has a cap sibling:
+Clone strong adsets that have no cost cap as cap adsets, unless the offer already has a cap sibling. The clone budget is a policy constant; "strong" is relative to the adset's peers in the same vertical, computed in init:
 
 ```csharp
-if (ad.CostCap > 0 || ad.OfferCountWithCap > 0) return Ignore();
-if (ad.LastCloneCapUtcHours < 2) return Ignore();                   // in days: cap-cloned in the last 2 days
-if (ad.RoiNumberOfDays >= 3 && ad.ROI > 30 && ad.Spend > 15) return CloneAsCap(40_00);
+#region members
+const int CapCloneBudgetCents = 50_00;   // policy: clone budget agreed with the operator
+Dictionary<string, double> MedianRoiByVertical = new();
+#endregion
+
+#region init
+MedianRoiByVertical = Adsets.Select(x => x.Entry)
+    .Where(x => x.IsActiveToday && x.Spend.Overall > 0)
+    .GroupBy(x => x.Vertical.Name)
+    .ToDictionary(g => g.Key, g => { var v = g.Select(x => x.ROI.Overall).OrderBy(x => x).ToList(); return v[v.Count / 2]; });
+#endregion
+
+if (ad.CostCap.Value > 0 || ad.OfferCountWithCap > 0 || !ad.IsActiveToday) return Ignore();
+if (ad.LastCloneCapUtcHours < 2) return Ignore();                            // in days: cap-cloned in the last 2 days
+if (!MedianRoiByVertical.TryGetValue(ad.Vertical.Name, out var median)) return Ignore();
+if (ad.RoiNumberOfDays >= 3 && ad.Conversions.Overall >= 10 && ad.ROI.Overall > Math.Max(30, median + 20))
+    return CloneAsCap(CapCloneBudgetCents).WithComment($"ROI {ad.ROI.Overall:0}% vs vertical median {median:0}%, {ad.RoiNumberOfDays} positive days");
 return Ignore();
 ```
 
@@ -262,8 +329,11 @@ if (ToKill.Contains(ad.AdsetId))
 return Ignore();
 ```
 
-Show only one vertical in one country with no action (a pure filter):
+Show only one vertical in one country with no action (a pure filter). The names are the user's scope, declared once so they are easy to find and change:
 
 ```csharp
-return ad.Vertical.Name == "Cars" && ad.Country == "US" ? Include() : Ignore();
+#region members
+(string Vertical, string Country) Scope = ("Cars", "US");   // scope chosen by the operator; check both exist with a query first
+#endregion
+return ad.Vertical.Name == Scope.Vertical && ad.Country == Scope.Country ? Include() : Ignore();
 ```

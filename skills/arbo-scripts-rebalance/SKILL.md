@@ -36,12 +36,22 @@ Know this before judging anything:
 |---|---|
 | `list_stat_scripts` with `isAutomated=true`, `includeCode=true` | Every automated script with its code, `priority`, schedule (`automationEveryHours`, `automationSource`, `automationFromHour`, `automationToHour`) and run times (`lastTriggeredUtc`, `lastActionsUtc`, `lastActionsGroups`, `lastActionsAdsets`). They come back in run order. |
 | `run_stat_query` | Dry-run the scripts on real adsets and read the tag history (templates in [simulation.md](simulation.md)). Nothing is applied. |
-| `get_stat_response_adset_definition` | Current members and enum values when a script's code uses something you need to check. |
+| `get_stat_response_adset_definition` | Current members and enum values. Call it **once per session before reading the scripts** and go through it: it is how you check that every member and enum value a script uses still exists, and whether a newer member (counts, siblings, change history, snapshots) would express a script's intent better than what it uses. |
 | `get_stat_script`, `update_stat_script_code` | Read one script, then change its `priority`, `code` and/or `description`. **Only after the user approves.** |
 
 The tools can change a script's schedule (`automationEveryHours`, `automationSource`, `automationFromHour`, `automationToHour` on `update_stat_script_code`), but can't turn automation on or off. When a fix needs a script switched on or off, tell the user what to change in **Stats → Scripts**.
 
-When the script writing rules matter (a rewrite, a header, a dry-run comparison), follow the **arbo-scripts** skill. Refer to scripts by name with the user.
+When the script writing rules matter (a rewrite, a header, a dry-run comparison), follow the **arbo-scripts** skill, including its "Think like an engineer" section. Refer to scripts by name with the user.
+
+## Think like an engineer
+
+Scripts are judged as a system, but each one also has to be sound on its own, and a review that only reorders unsound scripts rearranges the problem. While reading the code, look for these and treat them as findings:
+
+- **Flat thresholds on adsets of very different sizes.** `Spend > 20`, `Profit < -15`, `MaximumChange = 10_00` mean different things for a 5$ and a 300$ adset. The simulation shows the symptom: the adsets a script acts on cluster at one end of the budget range, or a scaling step is noise on big adsets and a jump on small ones. The fix is a rewrite where the threshold is relative to the adset (spend as a multiple of its budget or cap, loss as a share of its daily budget, a minimum count of conversions, ROI against the peers' median), not a different priority.
+- **Literals that go stale.** Account names, affiliate, vertical, theme or feed names, and enum values written into a script were right when it was written. Check each one against the live definition (enums) and a distinct-values query (names). A stale literal is a common cause of "runs but never acts" and, for transfers, of adsets quietly going to a random account. The fix is a live lookup or a property, or a declared scope block at the top of init if the user chose the name.
+- **Policy constants are not yours to rebalance.** A number the header's `WHY` or a memory `Decision` attributes to the user (a division ceiling, the clone budget, a cooldown) stays. Flag only numbers that nobody owns.
+- **Consequences of a change of order.** Moving a script up gives it every adset it shares with the ones below. Before proposing it, read its blast radius in the standalone simulation (count, spend, direction), ask what it does when it now wins adsets another script was built for, and whether the overlap is an accident (fix with order) or two intents competing (fix with scope conditions, and say so). Prefer the reversible or protective script winning where the evidence is thin.
+- **Edge cases shared by all scripts in a pass.** Early-morning passes see yesterday as the newest day, so `IsActiveToday` is false everywhere; new adsets have no history; ratios without spend are 0. A script that doesn't branch on these explicitly acts on noise, and the review says which scripts do.
 
 ## Shared memory (start and end of every run)
 
@@ -78,6 +88,7 @@ Call `list_stat_scripts(isAutomated: true, includeCode: true)`. If nothing is au
 - **Actions and direction**: stop (`Kill`, `Pause`), start (`Activate`), budget up or down, cap up or down, copy (clones, transfers). Note which of them claim adsets.
 - **Its tag** (`TagName`) and the cooldowns it reads, both its own tag and other scripts' tags.
 - **Run gates**: `CanRun`, `LastExecutionUtc` or time gates, hour checks, top-N limits in init.
+- **Flat numbers and literals**: every absolute threshold and every name or enum value in the code, and whether the header or memory says who chose it (see "Think like an engineer").
 - **Health** from the run times (see step 4).
 
 Show this as one compact table in run order before going further: priority, name, source/window/every, actions, tag, last run, last actions.
@@ -124,13 +135,14 @@ Flag a script that loses most of its standalone adsets to a higher one: either t
 - a script changes adsets that another script manages across passes without reading its tag (no `GetLastTagInHours("s:other")` guard), so it undoes the other's work;
 - the header's `SCOPE`/`PAIRS` don't match the code, or claim a split the code doesn't make;
 - a script depends on seeing adsets a higher script claims (a top-N or a total in init that silently shrinks);
-- a script has no `TagName` but returns actions.
+- a script has no `TagName` but returns actions;
+- a script uses flat thresholds that make it act only on one size of adset, or a literal name or enum value that no longer matches anything (see "Think like an engineer"). Evidence: the budget distribution of the adsets it acts on against all adsets, or an empty distinct-values check for the name.
 
 Propose the concrete change: which condition or guard to add, in which script.
 
 **4. No effect.** Classify each quiet script:
 - **Not running**: `lastTriggeredUtc` is null or far older than its delay while it is automated. Check the source, the window (`from` ≥ `to`, a window that never matches) and whether other scripts of the division run. If none of them run, script automation is probably off for the division. The user checks that; you can't.
-- **Runs but never acts**: `lastTriggeredUtc` is recent while `lastActionsUtc` is old or null, and the standalone simulation returns 0 actions. The conditions never match the current data (thresholds too strict, a wrong name or enum, a `CanRun` that never opens).
+- **Runs but never acts**: `lastTriggeredUtc` is recent while `lastActionsUtc` is old or null, and the standalone simulation returns 0 actions. The conditions never match the current data (thresholds too strict, a wrong name or enum, a `CanRun` that never opens). Check the names and enum values first: query the distinct values that occur now (`AffiliateName`, `Vertical.Name`, `TrafficAccountName`, the enum) and compare them with the literals in the code. A renamed affiliate or a disabled account is the usual culprit.
 - **Shadowed**: it acts standalone but 0 chained. Higher-priority scripts take all its adsets.
 - **Failing**: `lastActionsGroups` is 0 with a `lastActionsUtc` set (compile error or exception), or the simulation returns `CompileError`/`RuntimeError`, or it reports adsets whose body threw.
 - **No-op actions**: the script returns actions that the groups drop (`ChangeCostCap` on adsets with no cap, `Activate` on active ones, a budget equal to the current one, `Pause(0)`). The simulation's direction `none` on its actions shows this.
@@ -151,7 +163,7 @@ Apply exactly what the user approved, nothing more:
 
 - **Priority**: `update_stat_script_code(scriptId, priority: N)` per script. It takes effect from the next pass.
 - **Schedule**: `update_stat_script_code(scriptId, automationEveryHours / automationSource / automationFromHour / automationToHour)`. Hours are server time (Central European, CET/CEST, not UTC), from inclusive, to exclusive. It takes effect from the next pass.
-- **Rewrites**: follow the **arbo-scripts** skill. `get_stat_script`, change that code, dry-run it, update the header (`SCOPE`, `PAIRS`) and the description, then `update_stat_script_code` with the full code.
+- **Rewrites**: follow the **arbo-scripts** skill. `get_stat_script`, change that code, dry-run it, update the header (`SCOPE`, `PAIRS`) and the description, then `update_stat_script_code` with the full code. A rewrite that touches a threshold makes it relative to the adset where it can, and keeps a flat number only as a named policy constant with its owner in `WHY`.
 - **Re-check** after applying: run the pass simulation again with the new order and code, and show the before and after (lost adsets, opposing overlaps, per-script chained counts).
 
 Never touch scripts that aren't automated unless the user asks, and never propose disabling a script as the default fix. Say when a script looks redundant and let the user decide.

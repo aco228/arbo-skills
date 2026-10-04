@@ -15,6 +15,8 @@ This skill is self-contained. It works in the Claude web or desktop app and in C
 
 Tools used: `run_stat_query` (plus `save_agentic_query` only to restore a missing query), `list_pending_adset_actions`, `submit_adset_clones_with_cap`, `submit_adset_clones_with_cap_and_budget`, and optionally `get_adset_details`.
 
+**Once per session, before the first query, call `get_stat_response_adset_definition` and read it as an analyst.** It lists every member of an adset with its meaning and unit, generated from the current code. Go through it and decide which members carry the signal for this job (revenue per conversion, conversions, the cap and offer counts, the clone history, budget and spend percentage, local hour, trend) and whether a newer member fits better than the ones named here. Members are added and renamed while CK is developed; this skill and its queries can lag behind. Reuse that reading for the rest of the session.
+
 ## Terms and units
 
 - **RPC** here = revenue per **conversion**, in cents (`PricePerConversion`). The cost cap is also per conversion, so this is the number the cap is compared with. It is not revenue per click.
@@ -33,6 +35,26 @@ Tools used: `run_stat_query` (plus `save_agentic_query` only to restore a missin
 The offer counts cover cap adsets seen in the last 6 days, **killed ones included**. A cap that was tried and killed still counts. That is deliberate.
 
 The candidates query applies rules 1 to 4 for you. The thresholds (how much profit, ROI and conversions make a clear signal) are **not fixed**: take them from the study in step 2.
+
+## Think like an engineer
+
+Two kinds of numbers appear in this skill, and they are treated differently:
+- **Policy constants** chosen by the user: the clone rules above (cooldown 7 days, one cap per offer per account, at most 3 per offer, 50 USD clone budget). Apply them as given, change them only when the user says so, and record a change as a `Decision`.
+- **Analytical thresholds** (`minProfit`, `minRoi`, `minConv`, `minRpc`, `minCapRatio`, the cap margin): these describe the division's data today and come from the study. The defaults written in this skill and in the query parameters are fallbacks for thin data, not rules. Never present a default as "the threshold" when the study says otherwise, and say which numbers came from the study and which are fallbacks.
+
+**Thresholds are relative to the adset, not the same for all.** Sources differ by an order of magnitude in budget and RPC, so one flat number means different things for each:
+- A flat `minProfit` favours big-budget sources and hides small-budget ones. 10$ profit is a 25% day on a 40$ budget and a 200% day on a 5$ budget. Read profit together with the budget (`spendPct`, profit against budget) and ROI; a small adset with high ROI and enough conversions is a cleaner signal than a big one that reaches the profit bar on a thin ROI.
+- The conversions needed for a trustworthy RPC depend on the RPC. A cheap offer (RPC near `minRpc`) needs many more conversions before its RPC is stable than an offer at 150c. Judge `conv3d` against the RPC level, not against `minConv` alone.
+- The cap margin is a share of RPC, not a number of cents. 5c under a 15c RPC is a third of the revenue and the clone may never deliver; 5c under a 200c RPC is 2.5% and protects almost nothing. Use `capToRpc` as the measure, read `byCapToRpc3d` and `strongByCapMinusRpc` to see which margin the division's clones actually needed at which RPC level, and set the margin per adset from that (`capMarginCents` is one parameter, so say when you override the suggested cap for a row and why).
+- "Enough data" is a count of conversions and a share of the day, not a time of day: a `today` signal is strong when the country's day (`LocalHour`) is well along and the pace is steady, weak at 09:00 local with 3 conversions.
+
+**Names are data, not knowledge.** Feeds, countries, accounts, affiliates and verticals are created, renamed and disabled in the UI. Take a `feed` or `country` parameter from the user's words or from the distinct values in the data, never from memory or from the examples here, and when a filter returns an empty list, suspect the name before the data. The ad account of a clone is the source's own account; never pick or name one yourself.
+
+**Consequences before the yes.** A clone is a new adset that spends its budget every day until someone kills it:
+- Blast radius of the batch: count × budget per day, against the division's daily profit, and how many clones land on one offer, one account and one vertical. A batch that doubles the division's spend on one vertical is a bet, and should be called one.
+- Wrong by half: a cap too low wastes nothing but the chance; a cap too high on a collapsing RPC loses up to the clone budget per day until it is killed. Where the RPC is unstable, prefer a smaller budget (20 to 30 USD) over a bolder cap.
+- Repetition: scheduled or repeated runs must rely on the cooldown and the `a:capScout` tag, and on `list_pending_adset_actions`, so the same source is never cloned twice while the first clone is pending or silent.
+- Data edge cases that each need an explicit decision in your table: today partial, a source that delivers only on yesterday's numbers, `LastCloneCapUtcHours` set but no cap visible (pending or failed clone), killed caps that still count in the offer rules, two rows of the same offer in one batch.
 
 ## Shared memory (start and end of every run)
 
@@ -106,6 +128,7 @@ The query applies the rules. You decide whether the signal is **clear**. Keep, a
   - An earlier clone that **delivered and lost money** is evidence against cloning. Skip it unless RPC has clearly improved since then.
   - An earlier clone that is still **active** at a similar cap means the offer is already being scaled.
 - **Budget-limited source.** A test adset with a tiny budget can't show much absolute profit. There, high ROI plus enough conversions is the signal. A source that only reaches the profit bar thanks to a big budget and a thin ROI is weaker.
+- **Margin relative to RPC.** Check `capToRpc` for each row, not just the cents. For a low RPC the suggested cap may sit too close to the delivery floor; for a high RPC a 5c margin protects little, and a wider margin (a few percent of RPC, if the study supports it) costs almost no delivery. Say when you change a suggested cap.
 - **Cap sanity.** Cap in cents, between 2 and 350, below `rpcBasis`, and `capToRpc` not under the calibrated floor. Round to whole cents.
 
 Also run `list_pending_adset_actions` and drop any adset that already has a pending action (the server would reject the whole call).
@@ -150,3 +173,4 @@ When the user asks, run a small query over clones tagged `a:capScout` (tags are 
 - **Today is partial.** A `today` signal at 10:00 UTC is strong evidence; a `yesterday` signal with a weak today is weaker. Say which it is.
 - **Don't clone the same offer twice in one batch** in the same account. The offer rule only sees existing caps, not the other rows of your list.
 - **Speed matters, but so does the yes.** Keep the table short and the reasoning to one line per row, so the user can confirm in seconds.
+- **The defaults are not the rule.** `minProfit` 10, `minRoi` 50 and the rest are fallbacks for thin data. When the study ran, its numbers win, and the summary says which is which. A flat profit bar applied to a 5$ and a 60$ source is not the same test; read profit with the budget and ROI.

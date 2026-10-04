@@ -9,6 +9,8 @@ A stats query is a C# method body that loads the division's adsets, analyses the
 
 **Call `get_stat_response_adset_definition` once before writing queries** (once per conversation is enough). It is generated from the code, so it is always current: the query API, every `StatResponseAdset` and `AverageValue` member with its type, and a `hint` with the meaning and unit of each member. Hints are authoritative; when they differ from this skill, follow the hints. [reference.md](reference.md) has the same information as a fallback when the tool isn't available.
 
+Read it as an analyst, not as a spell-checker: before the first query, go through the members and pick the ones that carry the answer to the question at hand (which metric over which days, which counts make a ratio trustworthy, which fields describe the adset's size and context, which history members say what was already done to it). Members are added and renamed while CK is developed, so the live definition often holds a better field for the question than the one you remember or the one the examples use (for example `ArticleCategory` next to `Vertical`, `ImagePromptName`, `Snapshots`, `Changes[].Stats`). Reuse that reading for the rest of the session.
+
 ## Shape of a query
 
 ```csharp
@@ -114,7 +116,7 @@ Base the answer on the returned numbers, state the window and units, and mention
 ### 5. Save it when it is worth reusing
 
 Save to the agentic library with `save_agentic_query` when the query answers a question that will come back (a standard breakdown, a recurring health check), not for one-off questions.
-- **Generalise with `Param`** instead of hard-coding countries, days or thresholds, so one query serves many questions.
+- **Generalise with `Param`** instead of hard-coding countries, days or thresholds, so one query serves many questions. Account, affiliate, vertical, theme and feed names are data that changes: never write them from memory, take them from a distinct-values query or from the user, and prefer a property (`AffiliateModel.FeedType`, `ArticleCategory`, `TrafficProvider`) when one expresses the same thing.
 - **Name and describe it for someone searching later.** Name: what it answers ("Losers by country over N days"). Description (40+ characters): which adsets it looks at, what it returns, what each parameter means.
 - **Check first** with `list_stat_queries` that a similar agentic query doesn't exist; if it does, improve it with `update_agentic_query` (read it with `get_stat_query` first, code replaces the whole code).
 - The library holds **50** agentic queries (`agenticCount` / `agenticLimit` in `list_stat_queries`). When it is full, delete ones that are unused or superseded with `delete_agentic_query`.
@@ -136,7 +138,7 @@ var activeOnly = Param("activeOnly", true, "Only adsets that are active now");
 ## Queries and scripts work together
 
 Queries gather intelligence; arbo scripts (the **arbo-scripts** skill) act on it in the Scripts editor. Both work on the same `StatResponseAdset` and `AverageValue`, so everything here about metrics, units, `Overall`, days and enums holds for scripts too. A typical flow:
-1. Explore with queries: find where the losses or wins are, which thresholds separate good from bad adsets, how many adsets a rule would catch.
+1. Explore with queries: find where the losses or wins are, which thresholds separate good from bad adsets, how many adsets a rule would catch. Look for thresholds that scale with the adset (spend as a multiple of its budget or cap, loss as a fraction of its daily budget, ROI against the vertical or country median, a minimum number of conversions) rather than one flat dollar figure for adsets of very different sizes, and report the distribution (quartiles, medians per group), not just a cutoff that happens to fit today's list.
 2. Check the rule as a query before it becomes a script: the same conditions in a `Where`, returning the count, the spend at stake and a few examples.
 3. Write the script with the arbo-scripts skill using the thresholds the data supports, and tell the user what the query showed (how many adsets, how much spend).
 4. Test the script before proposing it (this is the only use of `RunTestScript`; never use it to answer questions about adsets): in a query, select the adsets that should get each action independently of the script (adsets the user named, or the goal written as a plain filter, not the script's conditions copied), run `RunTestScript` and `Compare` each action, plus `"None"` for adsets that must stay untouched. Fix until every comparison `IsMatch`, and show the user the kills and budget changes with their comments.
