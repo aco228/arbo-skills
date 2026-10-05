@@ -53,7 +53,7 @@ At the end of every run, go through this check (every arbo skill has the same on
 | Something has to be checked or done later | A `Task`: see step 5. |
 
 Rules for every write:
-- **Search first** (`memory_search` by text, type or links). If an entry on the same thing exists, update it (`memory_update`) or replace it (`memory_save` with `supersedesId`) instead of adding another one. The server refuses an active entry of the same type with the same title.
+- **Search first** (`memory_search` by text, type, links or topic). If an entry on the same thing exists, update it (`memory_update`) or replace it (`memory_save` with `supersedesId`) instead of adding another one. The server refuses an active entry of the same type with the same title.
 - **Summary first.** Most readers only see the title and summary: make them complete on their own. Details go in the body.
 - **Links**: add what the entry is about. They decide which agents see it in their scoped briefing.
 - **Always pass the same `agentName`** (e.g. `claude-web`, `hermes`, `n8n-daily-review`). It is recorded as the author.
@@ -101,7 +101,7 @@ Doing a task:
 | Tool | Use |
 |---|---|
 | `memory_briefing` | Start of work: objectives, your due tasks, last 24h journal, recent knowledge. `agentName`, `role`, `scopeLinks`. |
-| `memory_search` | Find entries: `types`, `text`, `links`, `taskStatus`, `includeInactive` (history), `limit`. One line per entry with its id. |
+| `memory_search` | Find entries: `types`, `text`, `links`, `topic` (exact topic key, e.g. all entries of one recurring job), `taskStatus`, `includeInactive` (history), `limit`. One line per entry with its id and topic. |
 | `memory_get` | One entry in full, with its `version` (needed to update) and recent history. |
 | `memory_save` | New Decision, Insight, Note, Journal or Task (with handover fields). Not objectives. |
 | `memory_update` | Change an entry: pass `expectedVersion` from `memory_get` and a `reason`. `reviewInDays` re-confirms, `archive=true` retires it. Not for objectives or journal entries. |
