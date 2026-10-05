@@ -1,6 +1,6 @@
 ---
 name: arbo-memory
-description: Read and write the division's shared CK memory, used by people and every agent working on the division (memory_briefing, memory_search, memory_get, memory_save, memory_update, memory_task_claim, memory_task_complete, memory_set_objective, memory_end_objective). It holds objectives (binding rules set by people, e.g. "no scaling this week"), decisions, insights, notes, a journal of what agents did, and tasks for later with a handover state. Use at the start of any CK work that plans or changes something (read the briefing), when the user says "remember", "note that", "from now on", "the objective is", "don't scale", "stop doing X", asks what was decided, tried or done before, asks for a follow-up or review later, or when you finish a change other agents should know about.
+description: Read and write the division's shared CK memory, used by people and every agent working on the division (memory_briefing, memory_search, memory_get, memory_save, memory_update, memory_task_claim, memory_task_complete, memory_ask_question, memory_withdraw_question, memory_answer_question, memory_set_objective, memory_end_objective). It holds objectives (binding rules set by people, e.g. "no scaling this week"), decisions, insights, notes, a journal of what agents did, tasks for later with a handover state, and critical questions agents ask the user (answered in CK). Use at the start of any CK work that plans or changes something (read the briefing), when the user says "remember", "note that", "from now on", "the objective is", "don't scale", "stop doing X", asks what was decided, tried or done before, asks for a follow-up or review later, when an unattended agent is blocked on a decision only the user can make, when the user wants to answer an agent's question, or when you finish a change other agents should know about.
 ---
 
 # Shared memory
@@ -19,6 +19,7 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 | `Note` | Anyone | A preference or gotcha: "show budgets in USD in plans". | No review |
 | `Journal` | Anyone | What you just did and why. Short. Can't be changed. | 14 days |
 | `Task` | Anyone | Work for later, with a handover state for whoever does it. | Until done; expires if nobody takes it |
+| `Question` | Agents ask (`memory_ask_question`), **people answer** (in CK, Agents > Memory) | A critical question to the user, with what the agent does until it gets an answer. See step 6. | Open up to 7 days by default (max 14), then expires; closed ones archived after 30 days |
 
 Every entry has a title, a one- or two-sentence summary (what lists and the briefing show), an optional body, optional `links` saying what it is about (`kind:value`: `vertical`, `country`, `affiliate`, `feed`, `account`, `tag`, `script`, `query`, `adset`, `offer`, `prompt`, `memory`), an author, a version and a history. Entries set by people can only be changed by people.
 
@@ -29,6 +30,8 @@ Every entry has a title, a one- or two-sentence summary (what lists and the brie
 Before planning or changing anything (adsets, scripts, titles, prompts), call `memory_briefing` with your `agentName` and, when the work has a clear scope, `scopeLinks` (e.g. `country:DE,vertical:Health`). It returns:
 - **Objectives**: binding. Follow them. If the user's request conflicts with one, say so and ask before acting ("the active `scaling` objective says no scaling until Friday; do you want to change it?"). Quote the objective you are applying in your plan.
 - **Tasks for you**: open tasks assigned to you, your role or anyone, that are due now.
+- **Your questions to the user**: your open questions, and the ones closed in the last 14 days with the user's answer (or dismissed / expired / withdrawn). Act on answers first: they are the user's decisions. A lasting rule in an answer → record it as a `Decision` (quote the answer); only the user can turn it into an objective.
+- **Open questions of other agents**: so you don't ask the same thing again.
 - **Journal**: what agents did in the last 24 hours. Check it before acting on the same adsets, scripts or titles, so you don't undo or repeat someone else's work.
 - **Recent knowledge**: decisions and insights. Use them as context; entries marked "review due, may be stale" need checking before you rely on them.
 
@@ -85,7 +88,40 @@ Doing a task:
 2. Read the handover (the claim returns the full entry), do the work, check the success criteria.
 3. `memory_task_complete` with the **same** `agentName`, outcome `Done`, `Failed` or `Cancelled`, and a result that says what you found and did. Follow-up work is a new Task.
 
-### 6. Keeping it current
+### 6. Questions to the user
+
+A question reaches a person who has to stop and think about it, so it costs more than any other entry. Most runs should ask nothing. Ask with `memory_ask_question` **only when all four hold**:
+1. **The answer changes what you do.** Different answers lead to different actions.
+2. **Nothing else can answer it.** Not data (run the query), not an objective, decision or note, not an earlier answer in your briefing or `memory_search` (`types=Question`, `includeInactive=true`).
+3. **Guessing wrong is costly**: it spends or loses real money, can't be undone, or the same wrong guess would repeat every run.
+4. **You have a safe default** to follow until someone answers, and if nobody does.
+
+Never ask:
+- for approval of something you are already allowed to do, or forbidden from doing: follow your instructions
+- for numbers or facts a query or tool can find
+- out of curiosity, for confirmation that your plan is fine, or to "keep the user informed" (that is the journal or a report)
+- the same thing again in other words, or something another agent already asked (see the briefing)
+
+Writing a good question:
+- `question`: one short, specific sentence the user can answer without opening anything else. "Should Profit brake also pause cap clones younger than 1 day?", not "What do you think about cap clones?"
+- `whyCritical`: what goes wrong, or stays blocked, without an answer, with the money involved.
+- `defaultAction`: what you do meanwhile. If any default is fine, don't ask.
+- `context`: the evidence and numbers, briefly.
+- `options` (`A|B|C`) when it is a choice. The user then answers with one click.
+- `links`: what it is about (`script:`, `tag:`, `feed:`).
+- Use the same `agentName` every run, so your briefing shows your questions and their answers.
+
+Limits, enforced by the server: at most 3 open questions per agent (withdraw one to ask another), and the same question can't be asked twice. To ask again because something changed, pass the old one as `supersedesId` and say what changed in the context.
+
+**Reading the outcome** in your next briefing:
+- **Answered**: follow it. Record a lasting rule as a `Decision`.
+- **Dismissed**: the user thought it wasn't worth asking. Keep your default, and don't ask that kind of question again. Remember it, e.g. as a `Note` or in your own lessons.
+- **Expired**: nobody answered in time. Keep your default. Ask again only if the stakes grew.
+- If you find the answer yourself, or it stops mattering, withdraw the question (`memory_withdraw_question`) with the reason.
+
+**When the user answers in chat** (for example "answer the scout's question: yes, pause them"), record it with `memory_answer_question`, using their words. Use `dismiss=true` when they say it wasn't worth asking. Never answer a question yourself or from data.
+
+### 7. Keeping it current
 
 - **Review tasks.** A daily maintenance job creates a task "Review insight/decision: ..." for every insight or decision past its review date. To do one: claim it, check the entry against current data (re-run its `query:` if it has one, compare with its snapshot), then:
   - still true → `memory_update` the entry with `reviewInDays` (this re-confirms it) and a short reason;
@@ -101,11 +137,14 @@ Doing a task:
 | Tool | Use |
 |---|---|
 | `memory_briefing` | Start of work: objectives, your due tasks, last 24h journal, recent knowledge. `agentName`, `role`, `scopeLinks`. |
-| `memory_search` | Find entries: `types`, `text`, `links`, `topic` (exact topic key, e.g. all entries of one recurring job), `taskStatus`, `includeInactive` (history), `limit`. One line per entry with its id and topic. |
+| `memory_search` | Find entries: `types`, `text`, `links`, `topic` (exact topic key, e.g. all entries of one recurring job), `taskStatus`, `questionStatus`, `includeInactive` (history), `limit`. One line per entry with its id and topic. |
 | `memory_get` | One entry in full, with its `version` (needed to update) and recent history. |
 | `memory_save` | New Decision, Insight, Note, Journal or Task (with handover fields). Not objectives. |
 | `memory_update` | Change an entry: pass `expectedVersion` from `memory_get` and a `reason`. `reviewInDays` re-confirms, `archive=true` retires it. Not for objectives or journal entries. |
 | `memory_task_claim` / `memory_task_complete` | Take and close a task, with the same `agentName`. |
+| `memory_ask_question` | Ask the user a critical question (step 6): `question`, `whyCritical`, `defaultAction`, optional `context`, `options` (`A\|B`), `links`, `topic`, `expiresInDays` (1-14, default 7), `supersedesId`. |
+| `memory_withdraw_question` | Withdraw your own open question, with the reason. |
+| `memory_answer_question` | Record the user's answer given in this conversation (`answer`, `dismiss`). Only their words. |
 | `memory_set_objective` / `memory_end_objective` | Set, replace or end an objective, only on the user's explicit request, quoting their words. |
 
 Errors come back as plain messages that say what to fix (a wrong type, an unknown link kind, a changed version, a task claimed by someone else). Read them and correct the call; don't retry the same call unchanged.
@@ -117,3 +156,4 @@ Errors come back as plain messages that say what to fix (a wrong type, an unknow
 - **Times are UTC** in memory (due, deadlines, end times). CK automation hour windows are server time (Central European), not UTC.
 - **The journal can't be edited.** If an entry was wrong, add a new one that corrects it.
 - **Humans' entries can't be changed by agents.** To suggest a change to an objective, tell the user.
+- **Questions are not tasks.** Work an agent can do goes in a `Task`. A question is only for a decision the user has to make.
