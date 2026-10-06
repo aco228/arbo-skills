@@ -121,6 +121,7 @@ Save to the agentic library with `save_agentic_query` when the query answers a q
 - **Check first** with `list_stat_queries` that a similar agentic query doesn't exist; if it does, improve it with `update_agentic_query` (read it with `get_stat_query` first, code replaces the whole code).
 - The library holds **50** agentic queries (`agenticCount` / `agenticLimit` in `list_stat_queries`). When it is full, delete ones that are unused or superseded with `delete_agentic_query`.
 - Agents can only change or delete **agentic** queries. Division queries belong to people.
+- Dashboards and widgets (the **arbo-dashboards** skill) load agentic queries by id and depend on their result names and row keys. Before `update_agentic_query` or `delete_agentic_query`, check `list_widgets` for views whose `queryIds` contain the query, and keep it compatible or update those views too.
 
 ## Parameters
 
