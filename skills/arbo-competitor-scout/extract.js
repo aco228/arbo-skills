@@ -64,6 +64,7 @@ for (const [idx, span] of idSpans().slice(0, LIMIT).entries()) {
     run_text: run,
     page_name: page ? page.s : null,
     page_url: page ? page.a : null,
+    page_id: page && (page.a.match(/facebook\.com\/(\d+)\/?$/) || [])[1] || null,
     primary_text: primary || null,
     domain,
     headline: link[1] || null,
@@ -77,4 +78,4 @@ for (const [idx, span] of idSpans().slice(0, LIMIT).entries()) {
 const clean = v => (v == null ? '' : String(v)).replace(/[\t\n]+/g, ' ').replace(/ ?\d:\d\d \/ \d:\d\d/g, '').trim();
 return [`#loaded=${idSpans().length} off_domain=${offDomain} known=${seenKnown.join(',')}`,
  ...fresh.map(a => [a.library_id, a.rank, (a.run_text || '').replace('Started running on ', ''), a.page_name,
-   a.headline, a.landing_url, (a.primary_text || '').slice(0, 120)].map(clean).join('\t'))].join('\n')
+   a.headline, a.landing_url, (a.primary_text || '').slice(0, 120), a.page_id].map(clean).join('\t'))].join('\n')

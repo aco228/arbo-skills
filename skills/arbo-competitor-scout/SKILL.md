@@ -1,6 +1,6 @@
 ---
 name: arbo-competitor-scout
-description: Scout competitors' Meta (Facebook) Ad Library ads for title inspiration. Pulls a competitor's longest-running, highest-impression ads through the browser into a local db (so later scans only bring new ads), finds the angles they are scaling, checks them against this division's verticals, themes and live titles, recommends missing themes (and, rarely, missing verticals), writes new titles and submits them as recommendations (reference claude-competitors) or, when asked, for generation. Use when the user asks to scan, sync or pull a competitor (domain, Facebook page id or Ad Library link), add one to the list, see what competitors are running, or wants title ideas from competitors or ideas for new themes.
+description: Scout competitors' Meta (Facebook) Ad Library ads for title inspiration. Pulls a competitor's longest-running, highest-impression ads through the browser into a local db (so later scans only bring new ads), finds the angles they are scaling, checks them against this division's verticals, themes and live titles, recommends missing themes (and, rarely, missing verticals), writes new titles and submits them as recommendations (reference claude-competitors) or, when asked, for generation. Use when the user asks to scan, sync or pull a competitor (domain, Facebook page name, page id, page link or Ad Library link), add one to the list, see what competitors are running, or wants title ideas from competitors or ideas for new themes.
 ---
 
 # Competitor scout
@@ -14,7 +14,7 @@ You pull competitors' ads from the Meta Ad Library, keep them in a local databas
 - **This skill's folder is read-only.** It comes from the shared arbo-skills repo that users only pull. Never create, edit or delete anything in it (or anywhere in that repo), and never suggest doing so; changes there cause pull conflicts. If the skill or the extractor needs a fix, tell the user what is wrong so they can report it to the skill owner.
 - **`SYNC`** below means `python3 <this skill's folder>/sync.py`, run from the user's own project folder (where they work with you, e.g. their stats repo). The script also refuses to write into the skills repo.
 - **The data folder** is `./competitors/` in that project folder (or `--data <folder>` / `$ARBO_COMPETITORS_DIR` if the user wants it elsewhere). It is the user's own and is created on first use, seeded with the shared competitor list:
-  - `competitors.json`: the competitors (`id`, `domain` or `page_id`, optional `country`, `query`, `notes`; `last_sync`, `dropped` are set by the script).
+  - `competitors.json`: the competitors (`id`, `domain` or `page_id` (plus `page_name` when added by name), optional `country`, `query`, `notes`; `last_sync`, `dropped` are set by the script).
   - `db/ads.json`: every ad pulled, keyed by Ad Library ID, with when it was first and last seen, whether it was analysed (vertical, angle) and used for a title.
   - `db/scans.json`: every scan (when, which competitor, how many ads loaded / new / already known).
   - `db/recommendations.json`: every title submitted from competitor ads (mode, reference or tag, source ads), so nothing is repeated.
@@ -35,7 +35,12 @@ If the `memory_*` tools are available (see the **arbo-memory** skill): at the st
 ## 1. Pick competitors
 
 - `SYNC list` shows the competitors with ads pulled and last scan (`--all` includes dropped ones). `SYNC scans` shows the scan history.
-- The user may name listed competitors, or give a new **domain**, **Facebook page id** or **Ad Library / page link**: `SYNC add <it> [--country CC]` (it prints the id to use). A domain is searched as a keyword and the extractor keeps only ads that link to it; use a page id when the user cares about one page.
+- The user may name listed competitors, or give a new **domain**, **Facebook page name**, **page id** or **Ad Library / Facebook page link**: `SYNC add <it> [--country CC]` (it prints the id to use). A domain is searched as a keyword and the extractor keeps only ads that link to it; a page is scanned by its page id (only that page's ads, whatever they link to).
+- **Page name.** Text without a dot (or with spaces) is taken as a page name; add `--page-name` for a name that has a dot. Many pages share a name, and the Ad Library has no search by page name, so the page id has to be found:
+  1. `add` itself looks in the ads already pulled: a name seen on exactly one page is resolved on the spot (`added ...: page <id> (<name>)`). `SYNC pages [--name "<name>"] [--competitor id]` lists the pages seen in pulled ads with their ids and ad counts; this is how a page found in a domain scan is picked.
+  2. Still unresolved: `SYNC url <id>` → navigate there, then run the output of `SYNC js <id> --mode resolve` with the JavaScript tool. It types the name into the Ad Library search box and returns the advertiser suggestions, one per line: `=` for an exact name match, page id, name, followers and category. `NO_SEARCH_BOX` means the page wasn't ready: run it again.
+  3. Exactly one exact match: `SYNC resolve <id> <page id>`. Several exact matches, or none: show the candidates (name, followers, category) and ask the user which one, or ask for the page link or an ad's Ad Library link. Never pick one by guess; a page found in pulled ads (step 1) beats the suggestions. The suggestions show at most 10 pages and often miss small new pages, so `NO_MATCHES` or no exact match doesn't mean the page has no ads.
+  4. A page added by name can't be scanned until it is resolved (`js` and `merge` refuse).
 - Only scan what the user asks for. Never scan the whole list unasked (it is long and each scan takes a minute).
 
 ## 2. Scan (per competitor)

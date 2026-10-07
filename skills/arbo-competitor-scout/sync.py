@@ -8,10 +8,12 @@ It is created on first use and seeded with competitors.seed.json.
 
   sync.py init                                  # create the data folder (also done automatically)
   sync.py list [--all]                          # competitors, ads pulled, last scan
-  sync.py add <domain | page id | Ad Library URL> [--id ID] [--country CC] [--note TEXT]
+  sync.py add <domain | page id | page name | Ad Library / page URL> [--page-name] [--id ID] [--country CC] [--note TEXT]
+  sync.py pages [--name TEXT] [--competitor C]  # Facebook pages seen in pulled ads (name -> page id)
+  sync.py resolve <competitor> <page id>        # set the page id of a competitor added by page name
   sync.py drop <competitor> [--reason TEXT]     # no ads in the library -> never scan again
   sync.py url <competitor>
-  sync.py js <competitor> [--limit N] [--mode run|install|both]   # browser snippets
+  sync.py js <competitor> [--limit N] [--mode run|install|both|resolve]   # browser snippets
   sync.py merge <competitor> <result file>      # extractor output -> db, logs the scan
   sync.py scans [--competitor C] [--limit N]    # scan history
   sync.py pending [--competitor C] [--min-days N] [--limit N]
@@ -90,6 +92,10 @@ def competitor(cid):
 
 
 def library_url(c):
+    if c.get("page_name") and not c.get("page_id"):
+        # Unresolved page name: a keyword search page, only to get the Ad Library search box for `js --mode resolve`.
+        return ("https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL"
+                f"&is_targeted_country=false&media_type=all&q={quote(c['page_name'])}&search_type=keyword_unordered")
     base = ("https://www.facebook.com/ads/library/?active_status=active&ad_type=all"
             f"&country={c.get('country', 'ALL')}&is_targeted_country=false&media_type=all"
             "&sort_data[mode]=total_impressions&sort_data[direction]=desc")
@@ -137,41 +143,83 @@ def cmd_init(_):
     ensure_init(verbose=True)
 
 
+def label(c):
+    if c.get("page_id"):
+        return f"page {c['page_id']}" + (f" ({c['page_name']})" if c.get("page_name") else "")
+    if c.get("page_name"):
+        return f"page name '{c['page_name']}' (unresolved)"
+    return c.get("domain")
+
+
+def seen_pages(db, name=None):
+    """{page_id: {"names": set, "ads": n, "competitors": set}} from pulled ads, optionally only exact (casefold) name matches."""
+    pages = {}
+    for ad in db.values():
+        pid, pn = ad.get("page_id"), ad.get("page_name")
+        if not pid or (name and (pn or "").casefold() != name.casefold()):
+            continue
+        p = pages.setdefault(pid, {"names": set(), "ads": 0, "competitors": set()})
+        p["names"].add(pn)
+        p["ads"] += 1
+        p["competitors"].add(ad["competitor"])
+    return pages
+
+
 def cmd_list(a):
     db = load(DB, {})
     for c in competitors()["competitors"]:
         if c.get("dropped") and not a.all:
             continue
         n = sum(1 for x in db.values() if x["competitor"] == c["id"])
-        print(f"{c['id']:<24} {c.get('domain') or c.get('page_id'):<30} ads={n:<5} last_sync={c.get('last_sync')}"
+        print(f"{c['id']:<24} {label(c):<30} ads={n:<5} last_sync={c.get('last_sync')}"
               + (f"  DROPPED {c['dropped']}: {c.get('drop_reason')}" if c.get("dropped") else ""))
 
 
 def cmd_add(a):
-    """Accepts a domain, a numeric page id, or an Ad Library / page URL."""
+    """Accepts a domain, a numeric page id, a page name, or an Ad Library / Facebook page URL.
+    Text without a dot (or with spaces) is a page name; --page-name forces it."""
     target, entry = a.target.strip(), {}
-    if target.startswith("http"):
+    if a.page_name:
+        entry["page_name"] = target
+    elif target.startswith("http"):
         u = urlparse(target)
         q = parse_qs(u.query)
+        path = [x for x in u.path.split("/") if x]
         if q.get("view_all_page_id"):
             entry["page_id"] = q["view_all_page_id"][0]
         elif q.get("q"):
             entry["domain"] = q["q"][0]
         elif u.hostname and "facebook.com" not in u.hostname:
             entry["domain"] = u.hostname
+        elif q.get("id") and q["id"][0].isdigit():  # facebook.com/profile.php?id=...
+            entry["page_id"] = q["id"][0]
+        elif path and path[0].isdigit():  # facebook.com/<page id>/
+            entry["page_id"] = path[0]
+        elif path and path[0] not in ("ads", "profile.php", "pages"):  # facebook.com/<username>: resolved like a name
+            entry["page_name"] = path[0]
         else:
-            sys.exit("can't read a page id or domain from that URL; pass the numeric page id or the domain")
+            sys.exit("can't read a page id, page name or domain from that URL; pass the page id, page name or domain")
     elif target.isdigit():
         entry["page_id"] = target
+    elif "." not in target or " " in target:
+        entry["page_name"] = target
     else:
         entry["domain"] = target
     if entry.get("domain"):
         entry["domain"] = re.sub(r"^www\.", "", entry["domain"].lower()).rstrip("/")
+    if entry.get("page_name"):
+        # A name seen on exactly one page in pulled ads is that page; otherwise `js --mode resolve` + `resolve`.
+        ids = list(seen_pages(load(DB, {}), entry["page_name"]))
+        if len(ids) == 1:
+            entry["page_id"] = ids[0]
     comps = competitors()
     for c in comps["competitors"]:
-        if (entry.get("domain") and c.get("domain") == entry["domain"]) or (entry.get("page_id") and c.get("page_id") == entry["page_id"]):
+        if ((entry.get("domain") and c.get("domain") == entry["domain"])
+                or (entry.get("page_id") and c.get("page_id") == entry["page_id"])
+                or (entry.get("page_name") and not entry.get("page_id") and not c.get("page_id")
+                    and (c.get("page_name") or "").casefold() == entry["page_name"].casefold())):
             sys.exit(f"already listed as '{c['id']}'" + (" (dropped; sync it by name to retry)" if c.get("dropped") else ""))
-    entry["id"] = a.id or slug(entry.get("domain") or f"page-{entry['page_id']}")
+    entry["id"] = a.id or slug(entry.get("domain") or entry.get("page_name") or f"page-{entry['page_id']}")
     if any(c["id"] == entry["id"] for c in comps["competitors"]):
         sys.exit(f"id '{entry['id']}' is taken; pass --id")
     if a.country:
@@ -181,7 +229,35 @@ def cmd_add(a):
     entry["last_sync"] = None
     comps["competitors"].append(entry)
     save(COMPETITORS, comps)
-    print(f"added {entry['id']}: {entry.get('domain') or 'page ' + entry['page_id']}")
+    print(f"added {entry['id']}: {label(entry)}")
+    if entry.get("page_name") and not entry.get("page_id"):
+        print(f"page id unknown: open `url {entry['id']}`, run `js {entry['id']} --mode resolve`, then `resolve {entry['id']} <page id>`")
+
+
+def cmd_pages(a):
+    db = load(DB, {})
+    pages = seen_pages(db, a.name)
+    rows = [(pid, p) for pid, p in pages.items() if not a.competitor or a.competitor in p["competitors"]]
+    for pid, p in sorted(rows, key=lambda x: -x[1]["ads"]):
+        print(f"{pid:<18} ads={p['ads']:<4} {' / '.join(sorted(n or '?' for n in p['names']))}  [{', '.join(sorted(p['competitors']))}]")
+    print(f"# pages: {len(rows)}" + ("" if any(ad.get("page_id") for ad in db.values()) else
+                                     " (ads pulled before page ids were recorded have none; they fill in on new scans)"))
+
+
+def cmd_resolve(a):
+    if not a.page_id.isdigit():
+        sys.exit("page id must be numeric")
+    comps = competitors()
+    for c in comps["competitors"]:
+        if c["id"] != a.competitor and c.get("page_id") == a.page_id:
+            sys.exit(f"page {a.page_id} is already listed as '{c['id']}'")
+    for c in comps["competitors"]:
+        if c["id"] == a.competitor:
+            c["page_id"] = a.page_id
+            save(COMPETITORS, comps)
+            print(f"{c['id']}: {label(c)}")
+            return
+    sys.exit(f"unknown competitor '{a.competitor}'")
 
 
 def cmd_drop(a):
@@ -205,6 +281,25 @@ def cmd_js(a):
     window.name (install; it survives navigation, while Facebook wipes unknown
     localStorage keys), so each sync only sends a short call (run)."""
     c = competitor(a.competitor)
+    if a.mode == "resolve":
+        if not c.get("page_name"):
+            sys.exit(f"'{c['id']}' has no page name to resolve")
+        # Types the name into the Ad Library search box and reads the Advertisers suggestions
+        # (option ids are `pageID:<id>`). `=` marks an exact name match.
+        print("const sleep = ms => new Promise(r => setTimeout(r, ms)); "
+              "let inp; for (let i = 0; i < 20 && !(inp = document.querySelector('input[type=search]')); i++) await sleep(500); "
+              "if (!inp) 'NO_SEARCH_BOX'; else { inp.focus(); "
+              "const type = v => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(inp, v); "
+              "inp.dispatchEvent(new Event('input', {bubbles: true})); }; "
+              # The box already holds the name from the URL; React ignores a set to the same value, so clear first.
+              f"type(''); await sleep(300); type({json.dumps(c['page_name'])}); "
+              "let opts = []; for (let i = 0; i < 16 && !opts.length; i++) { await sleep(500); "
+              "opts = [...document.querySelectorAll('[role=option][id^=pageID]')]; } "
+              "opts.map(o => { const t = o.innerText.split('\\n').map(s => s.trim()).filter(Boolean); "
+              f"return [t[0].toLowerCase() === {json.dumps(c['page_name'].lower())} ? '=' : ' ', o.id.slice(7), ...t].join('\\t'); }}).join('\\n') || 'NO_MATCHES'; }}")
+        return
+    if c.get("page_name") and not c.get("page_id"):
+        sys.exit(f"'{c['id']}' has no page id yet: `js {c['id']} --mode resolve`, then `resolve {c['id']} <page id>`")
     known = sorted(i for i, ad in load(DB, {}).items() if ad["competitor"] == c["id"])
     domain = json.dumps(c["domain"].lower()) if c.get("domain") and not c.get("page_id") else "null"
     body = EXTRACT_JS.read_text()
@@ -234,18 +329,20 @@ def read_result(path):
     head = dict(kv.split("=", 1) for kv in lines[0].lstrip("#").split())
     new = []
     for line in lines[1:]:
-        f = (line.split("\t") + [""] * 7)[:7]
+        f = (line.split("\t") + [""] * 8)[:8]
         new.append({"library_id": f[0], "rank": int(f[1]) if f[1].isdigit() else None,
                     "run_text": f[2] if " - " in f[2] else f"Started running on {f[2]}",
                     "status": "inactive" if " - " in f[2] else "active",
                     "page_name": f[3] or None, "headline": f[4] or None,
-                    "landing_url": f[5] or None, "primary_text": f[6] or None})
+                    "landing_url": f[5] or None, "primary_text": f[6] or None, "page_id": f[7] or None})
     return {"loaded": int(head.get("loaded", 0)), "off_domain": int(head.get("off_domain", 0)),
             "seen_known": [i for i in head.get("known", "").split(",") if i], "new": new}
 
 
 def cmd_merge(a):
     c = competitor(a.competitor)
+    if c.get("page_name") and not c.get("page_id"):
+        sys.exit(f"'{c['id']}' has no page id yet; resolve it before scanning")
     res = read_result(Path(a.file))
     db = load(DB, {})
     today = date.today().isoformat()
@@ -440,12 +537,14 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init").set_defaults(f=cmd_init)
     s = sub.add_parser("list"); s.add_argument("--all", action="store_true", help="include dropped"); s.set_defaults(f=cmd_list)
-    s = sub.add_parser("add"); s.add_argument("target"); s.add_argument("--id"); s.add_argument("--country"); s.add_argument("--note")
+    s = sub.add_parser("add"); s.add_argument("target"); s.add_argument("--page-name", action="store_true"); s.add_argument("--id"); s.add_argument("--country"); s.add_argument("--note")
     s.set_defaults(f=cmd_add)
+    s = sub.add_parser("pages"); s.add_argument("--name"); s.add_argument("--competitor"); s.set_defaults(f=cmd_pages)
+    s = sub.add_parser("resolve"); s.add_argument("competitor"); s.add_argument("page_id"); s.set_defaults(f=cmd_resolve)
     s = sub.add_parser("drop"); s.add_argument("competitor"); s.add_argument("--reason", default="no ads in Ad Library"); s.set_defaults(f=cmd_drop)
     s = sub.add_parser("url"); s.add_argument("competitor"); s.set_defaults(f=cmd_url)
     s = sub.add_parser("js"); s.add_argument("competitor"); s.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
-    s.add_argument("--mode", choices=["run", "install", "both"], default="run"); s.set_defaults(f=cmd_js)
+    s.add_argument("--mode", choices=["run", "install", "both", "resolve"], default="run"); s.set_defaults(f=cmd_js)
     s = sub.add_parser("merge"); s.add_argument("competitor"); s.add_argument("file"); s.set_defaults(f=cmd_merge)
     s = sub.add_parser("scans"); s.add_argument("--competitor"); s.add_argument("--limit", type=int, default=30); s.set_defaults(f=cmd_scans)
     s = sub.add_parser("pending"); s.add_argument("--competitor"); s.add_argument("--min-days", type=int, default=DEFAULT_MIN_DAYS)
