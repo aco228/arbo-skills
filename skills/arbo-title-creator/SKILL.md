@@ -1,6 +1,6 @@
 ---
 name: arbo-title-creator
-description: Create new article/ad titles for a division by chatting, based on what is currently winning, and submit the approved ones either as title recommendations (SetNewArticleTitles) or, only when the user explicitly asks to launch them, directly for article and ad generation (SubmitTitlesForGeneration). Use when the user asks to create, brainstorm, expand or suggest article titles or title recommendations for a vertical, theme, or country, or to launch/generate ads for finished titles.
+description: Create new article/ad titles for a division by chatting, based on what is currently winning, and submit the approved ones either as title recommendations (SetNewArticleTitles) or, only when the user explicitly asks to launch them, directly for article and ad generation (SubmitTitlesForGeneration). Use when the user asks to create, brainstorm, expand or suggest article titles or title recommendations for a vertical, theme, or country, or to launch/generate ads for finished titles. Also use when the user asks to create a new theme (a narrower topic under a vertical) with create_theme.
 ---
 
 # Title creator
@@ -20,7 +20,7 @@ The rules below are the same ones the automated title pipeline uses, adapted for
 
 This skill is self-contained. It works in the Claude web or desktop app and in Claude Code, and it does not need the project source code. Everything comes from these instructions and the CK MCP tools. Don't look for local files.
 
-The MCP tool prefix differs per person; refer to tools by their function name (`QueryAdsets`, `GetAdsetPerformance`, `GetWorkingArticleTitlesFromPartnerNetwork`, `SetNewArticleTitles`, `SubmitTitlesForGeneration`, `get_affiliate_providers`, `get_verticals`, `get_traffic_accounts`). The MCP connection already determines the division. Never work across divisions.
+The MCP tool prefix differs per person; refer to tools by their function name (`QueryAdsets`, `GetAdsetPerformance`, `GetWorkingArticleTitlesFromPartnerNetwork`, `SetNewArticleTitles`, `SubmitTitlesForGeneration`, `get_affiliate_providers`, `get_verticals`, `create_theme`, `get_traffic_accounts`). The MCP connection already determines the division. Never work across divisions.
 
 ## Shared memory (start and end of every run)
 
@@ -46,12 +46,20 @@ Search first (`memory_search`) and update or supersede an existing entry instead
 - A preference the user states for titles ("no questions in DE titles", "always include the year") is a `Note` linked to the vertical, country or affiliate, so the next run follows it.
 - Titles submitted for generation: a review `Task` after the test window (about 3 days), linked to the tag, with the titles' angles in the handover.
 
+**Verticals and themes.** These are the same thing: the topic a title, article and adset belongs to. They are split into two kinds only for legacy reasons.
+- A **vertical** is top level (`isTopLevel: true` in `get_verticals`), for example `Sale` or `Jobs`.
+- A **theme** (`isTopLevel: false`) is a child of exactly one vertical, named in `parentVertical`. It narrows that vertical and can never go beyond its scope. A theme under `Sale` can be about a kind of sale, but never about jobs or anything else outside sales.
+- Wherever a vertical name is asked for, a theme name works the same way: in title payloads, in the stats, and as `Vertical.Name` in queries. Names are unique across both kinds. Prefer the most specific entry that fits.
+- In rare cases nothing fits. Don't force the closest vertical. Say so, and recommend a new top-level vertical with a PascalCase name and a one-sentence description. The user adds verticals by hand in CK; there is no tool for it. New themes are created with `create_theme`, and only when the user explicitly asks.
+
 ## Workflow
 
 ### 1. Scope
 
 Establish, asking only for what is missing:
-- **Vertical**. Every title needs one, and both submit tools match it exactly. `get_verticals` lists every vertical of the division with its description. Call it whenever you don't have the exact name: the user describes a topic ("cheap flights", "sofas") instead of naming a vertical, the name they gave doesn't match exactly, or you just want to confirm it. Pick the vertical whose name and description fit the topic best. If several fit, or none does, show the candidates and let the user choose. Never invent a vertical name.
+- **Vertical**. Every title needs one, and both submit tools match it exactly. `get_verticals` lists every vertical of the division with its description. Call it whenever you don't have the exact name: the user describes a topic ("cheap flights", "sofas") instead of naming a vertical, the name they gave doesn't match exactly, or you just want to confirm it. Pick the vertical whose name and description fit the topic best. If several fit, or none does, show the candidates and let the user choose. Never invent a vertical name. If nothing fits, you may suggest creating a theme (step 8), but only create it when the user asks.
+
+  `get_verticals` has two optional filters: `topLevelOnly: true` returns only top-level verticals, and `vertical: "<top-level name>"` returns that vertical and all its themes. Use the second one to see what already exists under a vertical. Passing a theme name there returns an error that names its parent vertical. Prefer the most specific entry that fits, because its description is what guides title writing for it.
 - **Country** (ISO code) and **language** (code). Default the language to the country's main language.
 - **How many** titles (default 10 candidates).
 - Any extra direction from the user ("only budget airlines", "no year", ...).
@@ -178,3 +186,20 @@ Tool behaviour to know:
 - **All or nothing.** Any invalid title (unknown vertical, country, language, affiliate not in the division, unknown account or account type not matching the affiliate, banned word, duplicate, budget or cap over the limit) rejects the whole batch, and the reply lists every error. Fix those rows and resubmit the whole batch. Unlike `SetNewArticleTitles`, banned-word titles are not skipped; they fail the batch.
 - On success, tell the user how many titles were submitted for generation, how many wait for review (if any), and the tag, if any. Submitted titles are then turned into articles and ads automatically.
 
+### 8. Create a theme (only on explicit request)
+
+`create_theme` adds a new theme under a top-level vertical. Call it only when the user explicitly asks to create a theme, and only after they confirm the exact vertical, name and description. Never create one on your own initiative, not even when no existing vertical fits a title. In that case, suggest a theme and let the user decide.
+
+The theme name ends up everywhere: titles, articles, adsets and the stats all carry it as the vertical name. So:
+- **Vertical**: the exact name of a **top-level** vertical (`get_verticals` with `topLevelOnly: true`). A theme cannot be the parent; the tool rejects it. If the user names a theme, tell them which top-level vertical it belongs to and ask whether the new theme should go there. The theme must stay inside that vertical's scope. If the topic doesn't belong to any vertical, recommend a new vertical for the user to add by hand instead of forcing a theme under an unrelated one.
+- **Name**: PascalCase, letters and digits only, starting with an uppercase letter, no spaces, at most 60 characters, for example `SeasonalTireTypes` or `MensFashionOver60`. Follow the style of the existing names. It must be unique across **all** verticals and themes of the division, ignoring case. If `Sale` exists as a vertical, no theme can be called `Sale` or `sale`. Check `get_verticals` first; the tool also rejects a name that is taken.
+- **Description**: one or two concrete sentences on what the theme covers. Several things read it:
+  - the AI that writes and rephrases titles for the theme, where it sets the topic boundary;
+  - the AI that suggests new themes, which uses it to avoid overlap;
+  - ad image generation.
+
+  Say what is in scope and how the theme differs from its vertical and its sibling themes. Follow the existing descriptions, for example "Offers for tires categorized by seasonal suitability such as summer, winter, all-season, and rain tires." Avoid vague ones like "offers about tires".
+
+Before creating, call `get_verticals` with `vertical: "<parent>"` to see the existing themes. If one already covers the topic, point the user to it instead. Then show the vertical, name and description, and call `create_theme` only after a clear yes.
+
+The tool returns an error that says what to fix: an invalid name, a name already taken, an unknown vertical, a parent that is a theme, or an empty description. On success, the new theme can be used right away as the `Vertical` for titles. Write a `Journal` entry with the theme, its vertical and its description.

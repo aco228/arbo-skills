@@ -19,6 +19,10 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 
 All skills need the CK MCP connection. `arbo-competitor-scout` also needs `python3` and a browser tool, and keeps its db in the user's own project folder (`./competitors/`), never in this repo.
 
+## Concepts
+
+**Verticals and themes** are the same thing: the topic a title, article and adset belongs to. A vertical is top level, and a theme is its child. They are separate only for legacy reasons. A theme narrows its vertical and never goes beyond its scope: a theme under `Sale` can't be about jobs. Names are unique across both, and a theme name works anywhere a vertical name does (titles, stats, queries). `get_verticals` returns both with `isTopLevel` / `parentVertical`. Agents create themes with `create_theme` only when the user asks. When nothing fits, agents recommend a new vertical, and the user adds it by hand. Every skill that picks verticals carries this explanation, because skills must stay self-contained.
+
 ## Install
 
 The repo is a plugin marketplace (`arbo-skills`) with one plugin (`arbo-skills`) that holds every skill in `skills/`. Skills show up as `arbo-skills:<skill>`, e.g. `/arbo-skills:arbo-adset-actions`.

@@ -50,7 +50,14 @@ Search first (`memory_search`) and update or supersede an existing entry instead
 
 Read the scope from the request. Anything the user doesn't mention stays open (all countries, all verticals, all feeds, all affiliates):
 - **Country**: ISO code.
-- **Vertical**: an exact name from `get_verticals`. Map a described topic to the closest vertical, and ask if it's ambiguous.
+- **Vertical**: an exact name from `get_verticals`. Map a described topic to the closest vertical, and ask if it's ambiguous. `vertical: "<top-level name>"` lists one vertical with its themes. Never create a theme here; `create_theme` is only for when the user explicitly asks (arbo-title-creator).
+
+**Verticals and themes.** These are the same thing: the topic a title, article and adset belongs to. They are split into two kinds only for legacy reasons.
+- A **vertical** is top level (`isTopLevel: true` in `get_verticals`), for example `Sale` or `Jobs`.
+- A **theme** (`isTopLevel: false`) is a child of exactly one vertical, named in `parentVertical`. It narrows that vertical and can never go beyond its scope. A theme under `Sale` can be about a kind of sale, but never about jobs or anything else outside sales.
+- Wherever a vertical name is asked for, a theme name works the same way: in title payloads, in the stats, and as `Vertical.Name` in queries. Names are unique across both kinds. Prefer the most specific entry that fits.
+- In rare cases nothing fits. Don't force the closest vertical. Say so, and recommend a new top-level vertical with a PascalCase name and a one-sentence description. The user adds verticals by hand in CK; there is no tool for it. New themes are created with `create_theme`, and only when the user explicitly asks.
+
 - **Feed**: FLW, OH, Yahoo, ... Check with `get_affiliate_feed_types`.
 - **Affiliate**: an exact name from `get_affiliate_providers`.
 - **Window**: default the last 10 full days (`days`). Use the user's window if they give one.

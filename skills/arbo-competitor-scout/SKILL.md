@@ -1,6 +1,6 @@
 ---
 name: arbo-competitor-scout
-description: Scout competitors' Meta (Facebook) Ad Library ads for title inspiration. Pulls a competitor's longest-running, highest-impression ads through the browser into a local db (so later scans only bring new ads), finds the angles they are scaling, checks them against this division's verticals and live titles, writes new titles and submits them as recommendations (reference claude-competitors) or, when asked, for generation. Use when the user asks to scan, sync or pull a competitor (domain, Facebook page id or Ad Library link), add one to the list, see what competitors are running, or wants title ideas from competitors.
+description: Scout competitors' Meta (Facebook) Ad Library ads for title inspiration. Pulls a competitor's longest-running, highest-impression ads through the browser into a local db (so later scans only bring new ads), finds the angles they are scaling, checks them against this division's verticals, themes and live titles, recommends missing themes (and, rarely, missing verticals), writes new titles and submits them as recommendations (reference claude-competitors) or, when asked, for generation. Use when the user asks to scan, sync or pull a competitor (domain, Facebook page id or Ad Library link), add one to the list, see what competitors are running, or wants title ideas from competitors or ideas for new themes.
 ---
 
 # Competitor scout
@@ -25,6 +25,12 @@ You pull competitors' ads from the Meta Ad Library, keep them in a local databas
 ## Shared memory
 
 If the `memory_*` tools are available (see the **arbo-memory** skill): at the start call `memory_briefing` with your agent name and `scopeLinks` for the verticals/countries you will touch, follow active objectives (new titles fall under `new-titles`), and read the journal so you don't repeat another agent's titles. At the end, after a submit, write one `Journal` entry (count, verticals, countries, reference or tag); for a generation launch also a review `Task` about 3 days out, linked to the tag.
+
+**Verticals and themes.** These are the same thing: the topic a title, article and adset belongs to. They are split into two kinds only for legacy reasons.
+- A **vertical** is top level (`isTopLevel: true` in `get_verticals`), for example `Sale` or `Jobs`.
+- A **theme** (`isTopLevel: false`) is a child of exactly one vertical, named in `parentVertical`. It narrows that vertical and can never go beyond its scope. A theme under `Sale` can be about a kind of sale, but never about jobs or anything else outside sales.
+- Wherever a vertical name is asked for, a theme name works the same way: in title payloads, in the stats, and as `Vertical.Name` in queries. Names are unique across both kinds. Prefer the most specific entry that fits.
+- In rare cases nothing fits. Don't force the closest vertical. Say so, and recommend a new top-level vertical with a PascalCase name and a one-sentence description. The user adds verticals by hand in CK; there is no tool for it. New themes are created with `create_theme`, and only when the user explicitly asks.
 
 ## 1. Pick competitors
 
@@ -55,8 +61,18 @@ Signals, strongest first:
 
 Find the angles: topic, hook ("what's replacing X", "warning signs", "how much it costs", "may look like in 2027", named city or public programme), the markets (landing language), and what makes it concrete. Then:
 - `SYNC verticals <file>` with the output of `get_verticals` saved to a temp file (every run; the division decides the verticals).
-- For every article you judged: `SYNC mark <ids...> --vertical <exact vertical | none> --angle "<short angle>"`. Pick the vertical whose name and description fit best; `none` when nothing fits (mention it if the angle is big: a possible new vertical). Later ads for an analysed article inherit it.
+- For every article you judged: `SYNC mark <ids...> --vertical <exact vertical or theme | none> --angle "<short angle>"`. Pick the most specific entry whose name and description fit: a theme when one covers the article, otherwise its top-level vertical. Use `none` only when no vertical fits at all. Later ads for an analysed article inherit it.
+- **Missing themes.** Look for a sub-topic that competitors are scaling, falls clearly inside one top-level vertical, and that none of its themes covers. That means several articles, or one article run as many ads or on many pages, that you could only mark with the top-level vertical. `get_verticals` with `vertical: "<parent>"` shows the existing themes. Propose each one with:
+  - the parent vertical;
+  - a PascalCase name that is not used by any vertical or theme;
+  - a one or two sentence description of what is in scope and how it differs from its sibling themes;
+  - the evidence: competitors, articles, ads, pages and days running.
+
+  Never propose a theme outside its parent's scope. If the sub-topic doesn't belong to any vertical, it is a missing vertical, not a theme.
+- **Missing verticals (rare).** When big angles stay `none`, propose a new top-level vertical with a name, a description and the evidence. The user adds it by hand in CK.
 - Write a short note to `insights/YYYY-MM-DD-<topic>.md` in the data folder (patterns per competitor, what we can't use and why). Keep chat short.
+
+Show proposed themes and verticals to the user as a short table, separate from the titles. Create a theme only when the user explicitly asks. Use `create_theme` with the confirmed vertical, name and description, following arbo-title-creator step 8. Then refresh with `SYNC verticals` and re-mark the source articles with the new theme, so titles from them use it.
 
 ## 4. Check against the division
 

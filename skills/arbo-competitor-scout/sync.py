@@ -347,7 +347,8 @@ def cmd_mark(a):
 
 def cmd_verticals(a):
     data = json.loads(Path(a.file).read_text())
-    save(VERTICALS, [{"name": v["name"], "description": v.get("description")} for v in data])
+    save(VERTICALS, [{"name": v["name"], "description": v.get("description"),
+                      "isTopLevel": v.get("isTopLevel", True), "parentVertical": v.get("parentVertical")} for v in data])
     print(f"verticals: {len(data)}")
 
 
