@@ -1,6 +1,6 @@
 {
   "name": "arbo-skills",
-  "version": "1.15.0",
-  "description": "CK arbo skills: adset actions, cap scout, dashboards, image prompts, memory, scripts, scripts rebalance, stats queries, title creator, title scout",
+  "version": "1.16.0",
+  "description": "CK arbo skills: adset actions, cap scout, competitor scout, dashboards, image prompts, memory, scripts, scripts rebalance, stats queries, title creator, title scout",
   "skills": "./skills/"
 }

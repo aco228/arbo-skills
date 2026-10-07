@@ -8,7 +8,7 @@
     {
       "name": "arbo-skills",
       "source": "./",
-      "description": "CK arbo skills: adset actions, cap scout, image prompts, memory, scripts, scripts rebalance, stats queries, title creator, title scout"
+      "description": "CK arbo skills: adset actions, cap scout, competitor scout, image prompts, memory, scripts, scripts rebalance, stats queries, title creator, title scout"
     }
   ]
 }

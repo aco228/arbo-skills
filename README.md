@@ -7,6 +7,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 |---|---|
 | `arbo-adset-actions` | Change live adsets: kill, pause, activate, budget, cost cap, duplicates, clones, replicates |
 | `arbo-cap-scout` | Find proven test adsets and clone them into cost cap adsets |
+| `arbo-competitor-scout` | Pull competitors' grown Meta Ad Library ads into a local db and turn their angles into new titles |
 | `arbo-dashboards` | Build live dashboards and home-page widgets from stats queries |
 | `arbo-generate-image-prompt` | Design and manage base prompts for AI ad images |
 | `arbo-memory` | Shared division memory: objectives, decisions, insights, journal, tasks with handovers |
@@ -16,7 +17,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 | `arbo-title-creator` | Create article/ad titles by chatting |
 | `arbo-title-scout` | Size and place a batch of new titles to test |
 
-All skills need the CK MCP connection.
+All skills need the CK MCP connection. `arbo-competitor-scout` also needs `python3` and a browser tool, and keeps its db in the user's own project folder (`./competitors/`), never in this repo.
 
 ## Install
 
