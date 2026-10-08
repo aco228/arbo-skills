@@ -77,7 +77,7 @@ Limits: at most 50 `AddData` entries, 20,000 characters per value, 100,000 chara
 | `AdsetIdsWith(action)` | Ids of adsets that got `action`. |
 | `Compare(action, expectedAdsetIds)` | `IsMatch`, `ExpectedCount`, `ActualCount`, `Missed` (expected, didn't get it: shows what it got instead), `Unexpected` (got it, not expected: the comment says why), `NotInInput`. |
 
-Actions: `Kill`, `Activate`, `Pause`, `PercentageChange`, `BudgetChangeIndividual`, `CreateCostCap`, `ChangeCostCap`, `Clone`, `TransferToAccount`, `Include`, and `None` for untouched adsets. `Value` is the budget or cap in cents, pause hours, the account name, or the percentage / clone settings.
+Actions: `Kill`, `Activate`, `Pause`, `PercentageChange`, `BudgetChangeIndividual`, `CreateCostCap`, `ChangeCostCap`, `Clone`, `TransferToAccount`, `Include`, and `None` for untouched adsets. `Value` is the budget or cap in cents, pause hours, the percentage / clone settings, or for `TransferToAccount` an object `{ AccountName, InitialBudget, CapValue }` (account name or null, budget and cap in cents, null when the script did not set them).
 
 Return `Counts` and comparisons with `AddData`, not the whole result: every entry carries the full adset.
 

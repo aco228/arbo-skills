@@ -98,7 +98,9 @@ return Include();
 | `CloneAsCap(int newBudgetCents)` | Clone as a cost-cap adset with an auto cap (as `CreateCostCap`) and this budget. |
 | `CloneWithCap(int capCents, int newBudgetCents)` | Clone as a cost-cap adset with an explicit cap (used if > 3) and budget. |
 | `ToAnotherAccount()` | Transfer (rebuild) the offer on another account with new creatives: a new adset, the source stays as it is. Initial budget 200 cents. The target is picked at random from **valid accounts** (see "Which accounts can take an adset" below) where no loaded adset of the same offer runs. If there is none, or the adset's own account is disabled, the adset is dropped. |
-| `ToAnotherSpecificAccount(string name)` | Same, to the named account. A name that is not a valid account for this adset (unknown, disabled, full, another traffic provider, another account type, or the adset's own account) **silently falls back to a random valid account** other than the adset's own. If there is no valid account at all, nothing is created. Not checked: whether the offer already runs in the named account, so filter that yourself. |
+| `ToAnotherSpecificAccount(string name)` | Same, to the named account. Pass only a name read from `GetSupportedAccounts(...)` at run time, never a literal. A name that is not a valid account for this adset (unknown, disabled, full, another traffic provider, another account type, or the adset's own account) **silently falls back to a random valid account** other than the adset's own. If there is no valid account at all, nothing is created. Not checked: whether the offer already runs in the named account, so filter that yourself. |
+| `ToAnotherAccountWithBudget(int newBudgetInCents, int? capValueInCents = null)` | Same as `ToAnotherAccount()`, but the new adset starts with this budget and, if given, this cost cap (both in cents). The budget must be at least 150 and the cap at least 5, otherwise the script throws (the whole run fails, so clamp computed values yourself). Without a cap the new adset is uncapped. |
+| `ToAnotherSpecificAccountWithBudget(string name, int newBudgetInCents, int? capValueInCents = null)` | Same as `ToAnotherSpecificAccount(name)`, with the budget and cap rules of `ToAnotherAccountWithBudget`. |
 
 ### Which accounts can take an adset
 
@@ -172,7 +174,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `AdsetId` | string | Traffic-provider adset id. |
 | `Status` | `AdsetStatus` | Current status. |
 | `TrafficProvider` | `TrafficProvider` | Facebook / Taboola / Tiktok ... |
-| `TrafficAccountName`, `TrafficAccountId`, `TrafficCampaignId` | string | Account and campaign. |
+| `TrafficAccountName`, `TrafficAccountId`, `TrafficCampaignId` | string | Account and campaign. Read and group by them, compare adsets with each other on them, but never compare them to a literal: accounts change. |
 | `Origin` | `AdsetOrigin` | How the adset was created (regular publish, clone, cap clone, transfer ...). |
 | `OriginalAdsetId` | string? | Adset this one was created from (clone, cap clone, transfer or replicate to another account): the direct parent, so a chain A -> B -> C has C pointing to B. Empty when none. Transfers and replicates carry it only from 2026-09-27; older ones are empty. |
 | `IsActiveToday` | bool | **The adset delivered on the current UTC day**: today's stats have spend, impressions, clicks, conversions or revenue. Use it for anything about today (live adsets, clone or replicate sources, today's economics). The list also holds adsets that stopped days ago (their today row is all zeros), and `Status == Active` doesn't prove delivery. False for every adset while no stats of the current UTC day are loaded. |
@@ -206,8 +208,8 @@ Running the script only creates **groups**, one per action type and configuratio
 ### Affiliate
 | Member | Type | Meaning |
 |---|---|---|
-| `Affiliate` | int | Affiliate id (a plain number, not an enum). |
-| `AffiliateName` | string | Affiliate name. The easiest thing to compare. |
+| `Affiliate` | int | Affiliate id (a plain number, not an enum). Never compare it to a literal. |
+| `AffiliateName` | string | Affiliate name. For reading and grouping only; never compare it to a literal in a script: affiliates are added and removed. Select by `FeedType` / `AccountType` instead. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
 | `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the affiliate is configured for (FLW, OH, Yahoo, ...). The adset can only be transferred or replicated to accounts of this `Type` **and** of the same `TrafficProvider`. Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
@@ -311,7 +313,7 @@ One value per loaded day, **newest first**.
 
 ## 5. Enums
 
-Enums change during development: these lists are a snapshot and can be out of date. `get_stat_response_adset_definition` returns the current values (read from the code on every call); to see which values actually occur in the division, run a stats query that returns the distinct values. Affiliates are data, not an enum: compare `AffiliateName` or `AffiliateModel.FeedType`, and use `get_affiliate_providers` / `get_affiliate_feed_types` for what the division supports.
+Enums change during development: these lists are a snapshot and can be out of date. `get_stat_response_adset_definition` returns the current values (read from the code on every call); to see which values actually occur in the division, run a stats query that returns the distinct values. Affiliates are data, not an enum, and a script never names one: select by `AffiliateModel.FeedType` / `AffiliateModel.AccountType`, and use `get_affiliate_providers` / `get_affiliate_feed_types` for what the division supports.
 
 - `AdsetStatus`: `Unknown`, `Initialized`, `Active`, `Scheduled`, `Killed`, `Paused`, `Terminated` (permanent kill set by a person in the UI; same as Killed for scripts, but no group, budget or cap change is ever applied to it, so filter it out like Killed: `ad.Status is AdsetStatus.Killed or AdsetStatus.Terminated`)
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
@@ -329,4 +331,4 @@ Enums change during development: these lists are a snapshot and can be out of da
 
 These are already imported, and nothing else is: `System`, `System.Linq`, `System.Collections.Generic`, `System.Threading.Tasks`, plus the project namespaces that hold every type above.
 
-To use anything else, write its fully qualified name. For example, the affiliate-family helpers: `AdCompiler.Core.Extensions.AffiliateProviderExtensions.IsOceanHeroAffiliate(ad.Affiliate)` (also `IsCoinisAffiliate`, `IsYahooAffiliate`).
+To use anything else, write its fully qualified name (e.g. `System.Text.RegularExpressions.Regex`). Don't use affiliate-family helpers that test specific affiliates (`AffiliateProviderExtensions.IsOceanHeroAffiliate(...)` and similar): they depend on a fixed affiliate list. Use `ad.AffiliateModel.FeedType` / `ad.AffiliateModel.AccountType`.
