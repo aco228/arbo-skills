@@ -16,6 +16,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 | `arbo-stat-queries` | Answer adset performance questions with stats queries |
 | `arbo-title-creator` | Create article/ad titles by chatting |
 | `arbo-title-scout` | Size and place a batch of new titles to test |
+| `arbo-title-templates` | Review, validate and add the title templates behind daily title suggestions |
 
 All skills need the CK MCP connection. `arbo-competitor-scout` also needs `python3` and a browser tool, and keeps its db in the user's own project folder (`./competitors/`), never in this repo.
 
