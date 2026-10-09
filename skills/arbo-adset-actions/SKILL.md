@@ -26,7 +26,7 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 | `submit_adset_clones_with_cap_and_budget` | New copy with a cost cap and budget | `CapInCents`: **cents**, 2 to 350, and `BudgetInUsd`: **USD**, 1.5 to 70 (hard limit). Default choice is 50 USD; see below. |
 | `get_traffic_accounts` | Nothing (read-only) | Accounts that can receive replicates: `Name`, `TrafficProvider` and `Type`. |
 | `submit_adset_replicates` | New adset with **new creatives** in **another account** | `AccountName` (from `get_traffic_accounts`). Division's default launch budget for the country, no cost cap. |
-| `submit_adset_replicates_with_budget` | Same, with your budget and optional cap | `AccountName`, `BudgetUsd`: **USD**, 1.5 to 300, `CostCap`: **cents**, 5 to 350, or null for no cap. |
+| `submit_adset_replicates_with_budget` | Same, with your budget and optional cap | `AccountName`, `BudgetUsd`: **USD**, 1.5 to 300, `CostCap`: **cents**, 2 to 350, or null for no cap. |
 | `list_pending_adset_actions` | Nothing (read-only) | Pending actions per adset. |
 
 Every action has `AdsetId` and `Comment`. Every submit takes one `tagName` and an optional `forceAdditionalReview`.

@@ -1,6 +1,6 @@
 ---
 name: arbo-title-templates
-description: Review, validate, create and remove CK title templates, the title skeletons with {PLACEHOLDERS} and guidance per vertical or theme that the automation turns every day into new suggested titles (title recommendations) per country, which are then launched automatically when the country and vertical perform. Scores existing templates against the live titles they produced, writes new templates from what is winning, and stores the approved ones (list_title_templates, create_title_templates, delete_title_templates). Use when the user asks about title templates, skeletons or patterns, asks to check, validate, audit or clean up the templates of a vertical, asks why the daily suggested titles look a certain way, or wants new templates added so the automation writes titles in a new direction.
+description: Review, validate, create and remove CK title templates, the title skeletons with {PLACEHOLDERS} and guidance per vertical or theme that the automation turns every day into new suggested titles (title recommendations) per country, which are then launched automatically when the country and vertical perform. Scores existing templates against the live titles they produced, writes new templates from what is winning, stores the approved ones and can request title recommendations from them right away for chosen countries under a tracking reference (list_title_templates, create_title_templates, delete_title_templates). Use when the user asks about title templates, skeletons or patterns, asks to check, validate, audit or clean up the templates of a vertical, asks why the daily suggested titles look a certain way, or wants new templates added so the automation writes titles in a new direction.
 ---
 
 # Title templates
@@ -89,7 +89,7 @@ Show each proposed template with its guidance, the winners it comes from, and tw
 
 Call `create_title_templates` only when the user explicitly approves the exact templates. Before calling, show the vertical, language (or generic English), validity and every template with its guidance.
 
-Parameters: `vertical`, `templates: [{template, guidance}]` (at most 20 per call), optional `languageCode` (omit or `en` for generic), optional `validForHours` (24 to 48, default 36; the templates are removed afterwards, so they need re-adding if they should keep running).
+Parameters: `vertical`, `templates: [{template, guidance}]` (at most 20 per call), optional `languageCode` (omit or `en` for generic), optional `validForHours` (24 to 48, default 36; the templates are removed afterwards, so they need re-adding if they should keep running). Optional `countries`, `titlesPerTemplate` and `referenceName` request title recommendations right away (below).
 
 Each template is validated; rejected ones come back with the reason and the others are stored:
 - forbidden placeholder (year, country, nationality, age, gender or other demographic, bank, lender, issuer, insurer, broker or financial company name);
@@ -100,6 +100,14 @@ Each template is validated; rejected ones come back with the reason and the othe
 Fix rejected templates as the reason says, show the fixed versions and resubmit after the user agrees. The server check is the safety net, not the rule: follow "Rules for templates" yourself.
 
 After storing, tell the user they are used from the next suggestion run during the day, next to the generated ones, until they expire.
+
+**Requesting title recommendations right away (optional, same call).** Pass `countries` to also turn the templates saved in this call into title recommendations immediately, instead of waiting for the daily run. The tool creates one rephrase request per saved template × country; the title generator resolves them within a few minutes, the same way it resolves the daily requests, and saves the titles as title recommendations. Only the templates of this call are used, never templates already stored.
+- `countries`: ISO codes. Pick them from the data: the countries where the vertical (or theme) performs, from the evidence query or a stats query, and confirm the list with the user. Every country must exist and be supported for ads; with a `languageCode`, every country must speak that language. Any invalid country rejects the whole call and nothing is saved.
+- `titlesPerTemplate`: default 5, from 1 to 10. Change it only when the user asks or the batch would be too large.
+- `referenceName`: default `mcp-template`. The titles carry it, so they can be found and tracked on the imagine page. Set another one only when the user gives one, e.g. to track one batch separately.
+- At most 100 requests (templates × countries) per call.
+
+Show the countries, titles per template, the total (templates × countries × titles) and the reference together with the templates before calling. The reply says how many requests were created. Resolved titles still pass the generator's checks (banned words, length, titles already used in that country), so fewer may arrive than requested. They are recommendations like any other: the evening expansion can launch them when that country and vertical perform.
 
 ### 7. Remove (only on explicit approval)
 

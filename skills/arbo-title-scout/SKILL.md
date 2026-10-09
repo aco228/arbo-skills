@@ -199,7 +199,7 @@ Never submit until the user clearly says to. Before calling, show the exact fina
 **Review / Generation** (`submit_titles_for_generation`):
 - **Affiliate per title** (`affiliateName`). Required. Propose the affiliate the segment's winners run on (the `affiliate` field in the query rows). Check it against `get_affiliate_providers`, and let the user confirm or change it. Never invent one.
 - **Tag** (`tagName`). Suggest `t:scout-<scope>-<yyyymmdd>`, e.g. `t:scout-de-oh-20260927` or `t:scout-all-20260927`. It is written on the created adsets, and it is how the next scout run tells scout titles apart (the `tag` field in the query rows). Use it once the user agrees.
-- `initialBudget`, `costCap`: leave both empty unless the user gives them (maximum 20 USD budget and 3 USD cap).
+- `initialBudget`, `costCap`: leave both empty unless the user gives them (budget 1.5 to 20 USD, cap 0.02 to 3 USD; a value below the minimum rejects the whole batch).
 - `imagePromptName`: leave empty unless the user names one.
 - `accountName` (per title): leave empty unless the user explicitly says which account titles go to. **Never pick an account yourself**, even when the data points to one; empty lets the system choose. When the user names one, use the exact name from `get_traffic_accounts`; ask if unclear. Its `Type` must equal the affiliate's `AccountType` from `get_affiliate_providers`; if not, tell the user and ask for another account instead of choosing one (the tool rejects a mismatch anyway). It is a preference: a full or ineligible account may be swapped for another of the same type.
 - `forceAdditionalReview`: `true` for Review. `false` only for Generation.
