@@ -319,7 +319,7 @@ Enums change during development: these lists are a snapshot and can be out of da
 - `TrafficProvider`: `Unknown`, `Undefined`, `Facebook`, `Taboola`, `Tiktok`
 - `AdsetOrigin` (named `FacebookAdsetOrigin` before; that name no longer compiles): `Unknown`, `RegularPublish`, `LostAndFound`, `AiCloneAdset`, `AiCloneWithCap`, `AiReplicate`, `TrafficAdsetClone`, `TrafficAdsetCloneWithCap`, `TrafficAdsetCloneToCountry`, `TransferToAccount`, `TransferToTiktok`, `Ui_CountryPublish`
 - `ChangeModelType`: `Status`, `BudgetDecrease`, `BudgetIncrease`, `CapDecrease`, `CapIncrease`
-- `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `Preset` (the older preset automation), `HourRule`, `Yesterday`, `EndOfDay`
+- `AdsetChangeOrigin`: `Default`, `Reset`, `UI`, `Script`, `AIChange`, `Preset` (the older preset automation), `HourRule`, `Yesterday`, `EndOfDay`, `FacebookSync` (status copied from Facebook: Active in CK but paused or removed on Facebook, marked Killed)
 - `TrendDirection`: `Flat`, `Up`, `Down`
 - `AdsetCollectionTrend`: `MinimumNotMet`, `Mixed`, `MoreNegative`, `MorePositive`, `AlwaysPositive`, `AlwaysNegative`
 - `AffiliateFeedType`: `Unknown`, `FLW`, `OH`, `Yahoo`, `WordlineSearchRsoc`, `SearchRsoc2`, `SearchRsoc3`, `N2sJam`, `SearchRsocSt`, `FlwVoluum`
