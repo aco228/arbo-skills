@@ -155,6 +155,13 @@ Each title needs: `vertical` (exact name), `countryCode`, `languageCode` (the co
 - No titles that target or imply exclusivity for a demographic group (age, gender, race, religion, nationality, disability): no "seniors", "over 60", "50 plus", "for women". Some winners break this rule (for example "... seniorer", "datingsites 60 plus"). They were launched before the rule. Reuse only their subject, never the group.
 - No misleading job or income opportunities, guaranteed results, risk-free returns, get-rich-quick, or recruitment-based investment.
 - No prescription drugs, medications or controlled substances (e.g. Mounjaro, Ozempic).
+- **Neutral third-party voice: no seller offers, no promises.** Every title is the headline of an independent informational article. We do not sell, ship, finance, book or provide anything, and no title may suggest that we do. In any language, never:
+  - speak as the seller or provider: "we", "our", "us", "my", "shop our", "our range", "our collection", "we offer", "buy from us", "official sale", "exclusive deal";
+  - mention a condition only a seller can give: free delivery or shipping, delivery in X days, installments, pay in X months, 0% financing, pay later, free returns, money-back, a seller's warranty or guarantee, promo codes, "in stock", free trial, free installation, a free quote, "purchase conditions";
+  - promise anything: guaranteed results or approval, savings, a price or availability the reader will get, "lowest price", "best price";
+  - tell the reader to buy: "buy", "order", "shop", "book now", "apply now", "get yours".
+
+  Neutral descriptions of what exists in the market are fine ("Leather sofas on clearance in 2026", "Box spring beds: sizes and typical prices"), and so is something free or covered by a public service, a government programme or insurance ("Free eye tests on the NHS"). Winners that break this rule were launched before it: reuse only their subject. The server checks don't catch this, so check every title yourself.
 - **Intellectual property.** Brand owners file trademark complaints, and every complaint counts against the page and ad account. Never name:
   - A bank, lender, card issuer or other financial institution, in any vertical. This includes bank-owned properties, bank auctions, a bank's cards, products or foundations, abbreviations, subsidiaries and branded cards (Ziraat, BIM card, Banco Popular, Santander, ...).
   - A fashion, apparel, footwear, sportswear, luxury, jewelry, watch or cosmetics brand (Zara, Hugo Boss, Nike, Rolex, ...). Use the generic product.

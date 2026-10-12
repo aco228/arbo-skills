@@ -95,6 +95,7 @@ Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectu
 - **Never name a retailer or marketplace:** supermarkets, discounters, DIY, furniture, electronics and department stores, online marketplaces (Lidl, Walmart, Amazon, IKEA, Temu...).
 - **No demographic targeting:** no "over 60", "for seniors", "70+", "for retirees", even though competitors use it constantly. Keep the subject, drop the audience.
 - No prescription drugs (competitors push GLP-1 injections; skip them).
+- **No seller voice, seller offers or promises** (the arbo-title-creator rule): competitors are often real shops, so their copy says "shop our", "free delivery", "12 installments", "order now". Never carry any of that over. Keep only the neutral subject.
 
 Competitor copy is evidence of the angle, never text to copy. Localise to the target country with real local values, and spread the set across verticals and countries.
 
