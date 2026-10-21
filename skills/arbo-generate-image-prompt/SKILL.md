@@ -275,7 +275,12 @@ The user may ask for a **test prompt** to try the base prompt in an image genera
 ## Saved prompts (CK MCP)
 
 - `list_image_prompts(nameContains?)`: id, name, description of the division's own prompts and public prompts of other divisions. `IsOwn` says which ones this division can change.
-- `get_image_prompt(promptId)`: one prompt with all its variations, plus its state (enabled, auto rotation, public) set by people in CK.
+- `get_image_prompt(promptId)`: one prompt with all its variations, plus its state (`IsEnabled`, `IsPublic`) set by people in CK.
+
+What the state means:
+- **Enabled**: image generation picks the prompt automatically for new ads (among the prompts that fit the article).
+- **Disabled**: the prompt is kept but never picked automatically. It is still used when someone names it explicitly, e.g. `imagePromptName` in `submit_titles_for_generation`. That is how a new prompt is tried on real ads before it is enabled.
+- Affiliate/feed filters and auto rotation are set by people in CK and are not shown by the tools. A filtered prompt with auto rotation off is exclusive: articles of its affiliate/feed use only such prompts and skip the generic ones.
 - `save_image_prompt(name, description, variations, promptId?)`: creates a prompt (no `promptId`) or replaces name, description and variations of an own prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
 
 ### Submit (only on explicit approval)
@@ -288,8 +293,8 @@ Never call `save_image_prompt` until the user clearly says to submit or save.
 
 Tool behaviour to know:
 - Everything is validated on the server first: camelCase name unique in the division, a description, at least one variation, every required placeholder in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
-- **New prompts are saved disabled, private and out of auto rotation.** Tell the user to open CK (Generated ads → Generators configuration) to test it, enable it, put it in rotation, share it or add affiliate/feed filters. The tool never changes those settings.
-- **Editing an own prompt** replaces name, description and variations only. If the reply says the prompt is enabled and in auto rotation, tell the user that new ads use the change right away.
+- **New prompts are saved disabled, private and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user to open CK (Generated ads → Generators configuration) to test it, enable it, share it or add affiliate/feed filters. The tool never changes those settings.
+- **Editing an own prompt** replaces name, description and variations only. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
 - **Public prompts of other divisions are read-only.** To build on one, save it as a new prompt of this division (no `promptId`) with a new name, and say that it's a copy.
 
 ### Editing an existing prompt
