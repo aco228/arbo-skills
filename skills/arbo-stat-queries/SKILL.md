@@ -189,7 +189,7 @@ When the user wants their own query for the **Queries** editor (Stats page → Q
 - **`Name` is the theme or vertical name**, not the adset name. Use `Vertical.Name` for the vertical.
 - **Enums change during development.** Don't trust enum values from memory or from this skill: `get_stat_response_adset_definition` lists the current ones. To know which values actually occur, query them first (example below). Affiliates are data, not an enum: filter on `AffiliateName` or `AffiliateModel.FeedType`.
 - **Loading is the slow part.** Load once and reuse the list. Stats are cached for a minute, so repeating a query soon after is fast. A query that runs over 2 minutes is stopped.
-- **Run queries one after another, not in parallel.** At most 8 queries run at once on the server (6 per division), shared with everyone else; the rest wait up to 45 seconds. A note "Waited N seconds for a free query slot" means the server was busy. Combine questions into one query instead of firing many at once.
+- **Run queries one after another, not in parallel.** At most 3 queries run at once on the server (2 per division), shared with everyone else; the rest wait up to 45 seconds. A note "Waited N seconds for a free query slot" means the server was busy. Combine questions into one query instead of firing many at once.
 - **Output limits**: at most 50 `AddData` entries, 20,000 characters per value, 100,000 in total. Over that, the entry is skipped with a warning.
 
 ## Examples
