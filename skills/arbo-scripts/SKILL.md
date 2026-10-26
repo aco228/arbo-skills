@@ -98,6 +98,7 @@ Rules that must hold:
 - Every path returns an action. Code that falls off the end returns `Include()`.
 - Put guards first. Put the rule you want to win first: the first `return` decides.
 - `return true;` / `return false;` are shorthand for `Include()` / `Ignore()`, but only when spelled exactly like that. Prefer the explicit calls, especially inside lambdas.
+- `continue;` in the body is the same as `return Ignore();` (skip the adset, no action). Inside a loop you wrote yourself it only continues that loop, so use `return Ignore();` there.
 - Budgets and caps passed to actions are **cents** (`NewBudgetInUsd` is the exception). Stats money (`Spend`, `Revenue`, `Profit`, `Budget`) is **dollars**. `CostCap`, `PricePerConversion`, `CostPerConversion` and `CostPerVisit` are **cents**. ROI, CTR and CR are **percent**.
 - A metric used as a number (`ad.ROI > 20`) is the **newest day**. For multi-day judgement use the `AverageValue` helpers (see "Working with days" below).
 - **No affiliate or account in the code, ever** (see "Hard rule"): no affiliate names, ids, prefixes or domains, no traffic account names or ids (in `ToAnotherSpecificAccount("...")`, lists of target accounts, account filters), whoever asked for them. Select by `AffiliateModel.FeedType`, `AffiliateModel.AccountType` and `TrafficProvider`; target accounts come from `GetSupportedAccounts(predicate)` in init.

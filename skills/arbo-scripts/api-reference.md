@@ -40,6 +40,7 @@ public class CompiledQuery : StatScriptBase
 - **The body** (everything outside the two regions) runs once per adset in `Adsets`, **one at a time, in list order**, so it can safely read and update members (counters, sets). Prefer computing in init and only reading in the body.
 - Only the variable `ad` is in scope in the body. The action helpers below are methods of the base class and are called directly (`Kill()`, `Pause(3)`).
 - Before compiling, the literal texts `return true;` and `return false;` in the body are replaced with `return Include();` and `return Ignore();`. Only that exact spelling works. `return (true);`, `return true ;`, or `return true;` inside a lambda are not replaced. Members and init are never rewritten.
+- `continue;` in the body also means `Ignore()`: the adset is skipped with no action. Inside your own `for`/`foreach` loop it only continues that loop, so there use `return Ignore();`.
 - If the body throws for an adset (null reference, empty sequence, bad cast), the adset silently becomes `Ignore()`.
 - In the body you can use `var`, `if`/`switch`, LINQ, local functions, `Math`, and string methods. Classes, fields and methods go in members.
 
@@ -68,7 +69,7 @@ Every path of the body has to return one of these. Budgets and caps passed to ac
 | Call | Effect |
 |---|---|
 | `Include()` / `return true;` | Keep the adset visible in the grid. No action. |
-| `Ignore()` / `return false;` | Hide the adset. No action. |
+| `Ignore()` / `return false;` / `continue;` | Hide the adset. No action. |
 | `Kill()` | Kill group: sets status Killed. Already-killed and terminated adsets are skipped. |
 | `Activate()` | Activate group: sets Active. Only applies to Killed, Paused, Scheduled or Initialized adsets. Terminated adsets never come back. |
 | `Pause(int hours)` | Pause group: sets Paused and automatically re-activates after `hours`. `0` = skipped. Already Paused, Killed or Terminated = skipped. One group per distinct `hours`. |
