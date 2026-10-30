@@ -11,6 +11,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 | `arbo-dashboards` | Build live dashboards and home-page widgets from stats queries |
 | `arbo-generate-image-prompt` | Design and manage base prompts for AI ad images |
 | `arbo-memory` | Shared division memory: objectives, decisions, insights, journal, tasks with handovers |
+| `arbo-presets` | Read, create and change Stats presets (saved filters with an optional automated action) |
 | `arbo-scripts` | Write, explain and fix arbo scripts |
 | `arbo-scripts-rebalance` | Review a division's automated scripts as one system |
 | `arbo-stat-queries` | Answer adset performance questions with stats queries |
