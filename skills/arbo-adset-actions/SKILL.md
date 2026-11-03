@@ -31,6 +31,8 @@ This skill is self-contained and needs only the CK MCP tools. The MCP connection
 
 Every action has `AdsetId` and `Comment`. Every submit takes one `tagName` and an optional `forceAdditionalReview`.
 
+Duplicates and clones of a Tiktok adset stay in its Tiktok account and campaign. Their daily budget is at least 20 USD: a lower budget is raised to 20 USD.
+
 ### Timed changes (`HoursToReset` on budget and cap changes)
 
 With `HoursToReset` (1 to 24 hours) a budget or cap change is temporary: after that many hours the budget and/or cap goes back to the value the adset had **when you submitted**. Without it, the new value stays. Use it for a short push or cut, e.g. a higher budget for the evening hours, and only when the user asks for a temporary change or agrees to one. Show the reset time and the value it returns to in the plan.
