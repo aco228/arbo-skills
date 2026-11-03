@@ -5,6 +5,7 @@ Every skill is a folder under `skills/` with a `SKILL.md` (the open Agent Skills
 
 | Skill | What it does |
 |---|---|
+| `arbo-adplexity` | Turn AdPlexity ads of other arbitrage advertisers into new titles |
 | `arbo-adset-actions` | Change live adsets: kill, pause, activate, budget, cost cap, duplicates, clones, replicates |
 | `arbo-cap-scout` | Find proven test adsets and clone them into cost cap adsets |
 | `arbo-competitor-scout` | Pull competitors' grown Meta Ad Library ads into a local db and turn their angles into new titles |
