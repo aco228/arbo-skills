@@ -90,7 +90,7 @@ Before writing titles, find out what this division already runs, so you only bri
 ## 5. Write titles
 
 Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectual property, production-ready language, years, self-check). On top of them, these house rules are absolute, even when a competitor or one of our own winners breaks them:
-- **No loan offers:** never show a loan with an amount, duration, repayment term or rate ("80 000 Ft loan without a job", "6-month repayment", "5,000 euro credit limit"). Facebook flags them.
+- **Finance topics, never loan offers:** loans, credit, borrowing, pay later and other finance subjects are allowed as informational articles (they publish under the Facebook financial special category). Never show a loan offer with an amount, duration, repayment term or rate ("80 000 Ft loan without a job", "6-month repayment", "5,000 euro credit limit"): that is a seller offer and Facebook flags it.
 - **Never name a financial institution:** banks, lenders, card issuers, payment / buy-now-pay-later companies, credit bureaus (e.g. Schufa), insurers, or a government finance institution (pension fund, tax office, development bank). Use the generic subject.
 - **Never name a retailer or marketplace:** supermarkets, discounters, DIY, furniture, electronics and department stores, online marketplaces (Lidl, Walmart, Amazon, IKEA, Temu...).
 - **No demographic targeting:** no "over 60", "for seniors", "70+", "for retirees", even though competitors use it constantly. Keep the subject, drop the audience.
