@@ -212,7 +212,7 @@ Running the script only creates **groups**, one per action type and configuratio
 | `Affiliate` | int | Affiliate id (a plain number, not an enum). Never compare it to a literal. |
 | `AffiliateName` | string | Affiliate name. For reading and grouping only; never compare it to a literal in a script: affiliates are added and removed. Select by `FeedType` / `AccountType` instead. |
 | `AffiliateModel.FeedType` | `AffiliateFeedType` | Feed (FLW, OH, Yahoo, ...). |
-| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the affiliate is configured for (FLW, OH, Yahoo, ...). The adset can only be transferred or replicated to accounts of this `Type` **and** of the same `TrafficProvider`. Was `FacebookAccountType` before; that name no longer compiles. |
+| `AffiliateModel.AccountType` | `TrafficAccountType` | Account family the affiliate is configured for (FLW, OH, Yahoo, ...). A script transfer goes only to accounts of this `Type` **and** of the same `TrafficProvider`; an MCP replicate (`submit_adset_replicates`) needs this `Type` and may go to another `TrafficProvider` the affiliate can publish to (e.g. Facebook to Tiktok). Was `FacebookAccountType` before; that name no longer compiles. |
 | `AffiliateModel.Domain`, `.Prefix` | string | Affiliate domain and prefix. |
 
 ### Siblings (other loaded adsets of the same offer and country)
