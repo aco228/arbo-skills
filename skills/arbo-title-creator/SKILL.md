@@ -103,6 +103,14 @@ Find what made the winners win, then produce candidates that reproduce that esse
 - No titles that target or imply exclusivity for any demographic group (age, gender, race, religion, nationality, disability...). No "over 60", "for seniors", "singles over X", "for women".
 - No misleading job or income opportunities, guaranteed results, risk-free returns, get-rich-quick, or recruitment-based investment.
 - No prescription drugs, medications or controlled substances.
+- **TikTok: job, income and scholarship titles** (any title meant for a TikTok account, in Jobs and all its themes, School and its themes, and anything about side jobs or earning). TikTok rejects these as "misleading employment or money-making opportunities". The title is printed on the image, so the image is what gets rejected. 8 of 8 rejected TikTok ads on Nov 3-4, 2026 (KR, JP-style, PH, MX, TH) had this shape. In any language, never:
+  - mention pay: hourly pay, wage, salary, monthly income, rate per task, how much you can earn, pay ranges (시급, 월급, 월 수익, 時給, 単価, sueldo, gaji, ค่าจ้าง, "hourly rates", "typical pay");
+  - mention who qualifies: requirements, qualifications, conditions to apply, eligibility, "no experience needed", "how to apply", "how to start" (지원 조건, 필요한 조건, 자격, 応募条件, requisitos, syarat, คุณสมบัติ);
+  - pair "side job", "part-time" or "from home" with money or an easy start (부업 + 수익, "side job from home: pay and requirements");
+  - name an age group ("in your 50s", 50대), even when Facebook would allow it.
+
+  Write it as a neutral article about the work itself: what the tasks are, what a typical day looks like, what tools or training it involves, how the field works. `Online data research work: what the tasks involve`, `Warehouse sorting work: a look at a typical shift`. Scholarships: describe the programme and fields of study, not requirements or amounts.
+  - **TH part-time recruitment** on TikTok also needs an industry qualification on the ad account ("Recruitment Services - Part-Time"). Until the account has it, don't send TH job titles to TikTok; a new title doesn't fix it.
 - **Neutral third-party voice: no seller offers, no promises.** Every title is the headline of an independent informational article. We do not sell, ship, finance, book or provide anything, and no title may suggest that we do. In any language, never:
   - speak as the seller or provider: "we", "our", "us", "my", "shop our", "our range", "our collection", "we offer", "buy from us", "official sale", "exclusive deal";
   - mention a condition only a seller can give: free delivery or shipping, delivery in X days, installments, pay in X months, 0% financing, pay later, free returns, money-back, a seller's warranty or guarantee, promo codes, "in stock", free trial, free installation, a free quote, "purchase conditions";
