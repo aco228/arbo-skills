@@ -1,6 +1,6 @@
 ---
 name: arbo-generate-image-prompt
-description: Design a new base prompt for CK's AI ad-image generation (the template that turns an article headline and description into a Facebook image ad), from the user's description of the desired look and/or reference images. Produces a Facebook-compliant, CTR-oriented, placeholder-correct prompt with a short camelCase name, a description and variations. Use when the user asks to create, design, rework, review or vary an image prompt, image template, base prompt, ad image style or creative style, or sends reference ad images and wants a prompt that makes images like them. Also use when the user wants a test prompt (an existing base prompt filled with a given title for manual testing), or wants to list, read, submit or edit saved image prompts through the CK MCP (list_image_prompts, get_image_prompt, save_image_prompt).
+description: Design a new base prompt for CK's AI ad-image generation (the template that turns an article headline and description into a Facebook/TikTok image ad, or into a text-free landscape photo for native traffic on Taboola and popIn), from the user's description of the desired look and/or reference images. Produces a Facebook-compliant, CTR-oriented, placeholder-correct prompt with a short camelCase name, a description and variations. Use when the user asks to create, design, rework, review or vary an image prompt, image template, base prompt, ad image style or creative style, or sends reference ad images and wants a prompt that makes images like them. Also use when the user wants a test prompt (an existing base prompt filled with a given title for manual testing), or wants to list, read, submit or edit saved image prompts through the CK MCP (list_image_prompts, get_image_prompt, save_image_prompt). Also use for native image prompts (Taboola, popIn, "native", "no text" photos).
 ---
 
 # Image prompt generator
@@ -221,6 +221,36 @@ Rules for variations:
 - **Name**: a very short camelCase identifier used to recognise the prompt in lists and stats, e.g. `default`, `editorialV1`, `saleV1`, `comparePoster`, `flatIllustration`. Letters and digits only, starting lowercase, at most about 20 characters. Suggest one, and when you iterate on the same design, bump the version (`saleV2`). The name is stored on every adset it generates (`ImagePromptName` in stats, `null` for the default prompt), so a new version is tracked separately and renaming a prompt splits its history.
 - **Description**: 1–3 sentences in plain English describing the look, the layout and when it fits, e.g. "Bold editorial poster: headline in the top half over a pale background, one cut-out hero subject, a small localized search tag under the headline. Works for most verticals; best for product-category topics."
 
+## Native prompts (Taboola, popIn)
+
+Every prompt has a **kind**. Everything above this section describes **Ad** prompts (Facebook, TikTok: square feed ads with headline text). **Native** prompts are a separate kind for native traffic (Taboola, popIn), where the image is a "recommended article" thumbnail next to a title that the platform shows as text. In CK they are on the same Image generators page under the **Native** filter, and they are picked only for native ads, never for Facebook or TikTok, and the reverse.
+
+Ask which kind the user wants when it isn't clear. A prompt's kind is set when it's created and never changes.
+
+What a native image is:
+- A realistic, editorial-style **landscape photo** of one clear scene that makes the topic understandable and makes people curious. It should look like a real photo next to a news article, not like an ad or a poster.
+- **No text at all** in the image: no headline, letters, numbers, prices, labels, signs, search tags, buttons or watermarks. Native platforms crop images and penalise text overlays, and the title is already shown next to the image.
+- The platform crops it to several shapes (wide, 16:9, square), so the main subject sits in the centre with space around it.
+
+How CK handles native prompts:
+- CK sends the landscape size itself and adds no rules of its own. For every article, a cheap text model rewrites the filled prompt into one short, concrete scene for that article before it goes to the image model. Your prompt's style and rules are binding for that rewrite, so the no-text rule must be in the prompt you write (see step 5 below): it is kept only when your prompt has it. Only when the user explicitly asks for text in a native image may it be dropped, and then the prompt says exactly which text.
+- Required placeholders: only `{{Anchor}}` and `{{article_description}}`. `{{CountryName}}`, `{{Countries}}`, `{{LanguageName}}` and `{{Strategy}}` are optional. Don't use `{{PRIMARY_TEXT}}` (it invites the model to draw the headline), and leave `{{Strategy}}` out unless the user asks for it: it is written for text ads.
+
+Native images are made by small, fast models. They follow short, positive, concrete prompts and ignore or invert long lists of don'ts. Three rules follow from that, and breaking any of them puts text or the wrong scene in the image:
+- **Never put a placeholder inside quotes.** A quoted phrase means "write this" to an image model: `about "{{Anchor}}"` prints the title in the photo. Write `Article topic: {{Anchor}}`.
+- **Never name things that carry writing**, not even to forbid them: signs, signage, storefronts, shop facades, labels, captions, packaging, price tags, screens, posters. Mentioning them puts them in the scene, and their writing with them. Say "no writing of any kind appears anywhere in it, and no logos" and stop there.
+- **Point the model at the subject, not at a place where it's sold.** Ask for one close, concrete moment of the topic itself (the thing, the person it concerns, the situation the summary explains, where it actually happens). Never mention stores, shops, retailers or brands' buildings.
+
+How to write one (the Ad DNK above does not apply; use this instead):
+1. **Opening line**: realistic editorial photograph, wide 16:9, used as the thumbnail of an informational article.
+2. **Context lines**, unquoted: `Article topic: {{Anchor}}`, `Article summary: {{article_description}}`, and `Readers live in {{CountryName}}.` when a local feel helps.
+3. **Scene and photo direction**: one close, concrete moment of the topic that a reader recognises without a caption, plus the look the user wants (light, colour, framing, mood). Subjects are roles, never fixed (the "One prompt, every topic" rules apply in full). Main subject in the centre with space around it, because the platforms crop the image to several shapes.
+4. **Brands, one sentence**: "Anything named in the topic is shown as a plain, unbranded equivalent." The long Ad BRANDS block is not used for native: it names storefronts and signage and pulls the model into shop scenes.
+5. **No-text rule**, word for word: "The photograph is clean: no writing of any kind appears anywhere in it, and no logos."
+6. **Compliance, one or two sentences**: nothing suggests that something is sold, discounted or offered; one single natural scene, no collage, frame, split screen, graphics, gore or nudity.
+
+Keep native prompts short: 80–150 words. The quality review still applies, except the parts about headline, text and the search label; add one check: no placeholder in quotes, and no word for anything that carries writing.
+
 ## Shared memory (start and end of every run)
 
 The division has a shared memory that people and other agents use (the `memory_*` tools; the **arbo-memory** skill has the details). If those tools aren't available, skip this section.
@@ -274,14 +304,14 @@ The user may ask for a **test prompt** to try the base prompt in an image genera
 
 ## Saved prompts (CK MCP)
 
-- `list_image_prompts(nameContains?)`: id, name, description of the division's own prompts and public prompts of other divisions. `IsOwn` says which ones this division can change.
-- `get_image_prompt(promptId)`: one prompt with all its variations, plus its state (`IsEnabled`, `IsPublic`) set by people in CK.
+- `list_image_prompts(nameContains?, kind?)`: id, name, kind (`Ad` or `Native`) and description of the division's own prompts and public prompts of other divisions. `kind` narrows the list to one kind. `IsOwn` says which ones this division can change.
+- `get_image_prompt(promptId)`: one prompt with its kind, all its variations and its state (`IsEnabled`, `IsPublic`) set by people in CK.
 
 What the state means:
 - **Enabled**: image generation picks the prompt automatically for new ads (among the prompts that fit the article).
 - **Disabled**: the prompt is kept but never picked automatically. It is still used when someone names it explicitly, e.g. `imagePromptName` in `submit_titles_for_generation`. That is how a new prompt is tried on real ads before it is enabled.
 - Affiliate/feed filters and auto rotation are set by people in CK and are not shown by the tools. A filtered prompt with auto rotation off is exclusive: articles of its affiliate/feed use only such prompts and skip the generic ones.
-- `save_image_prompt(name, description, variations, promptId?)`: creates a prompt (no `promptId`) or replaces name, description and variations of an own prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
+- `save_image_prompt(name, description, variations, promptId?, kind?)`: creates a prompt (no `promptId`; `kind` is `Ad` by default, pass `Native` for a native prompt) or replaces name, description and variations of an own prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
 
 ### Submit (only on explicit approval)
 
@@ -292,9 +322,9 @@ Never call `save_image_prompt` until the user clearly says to submit or save.
 4. Call `save_image_prompt`. Pass arrays as real JSON arrays, not as a JSON string.
 
 Tool behaviour to know:
-- Everything is validated on the server first: camelCase name unique in the division, a description, at least one variation, every required placeholder in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
-- **New prompts are saved disabled, private and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user to open CK (Generated ads → Generators configuration) to test it, enable it, share it or add affiliate/feed filters. The tool never changes those settings.
-- **Editing an own prompt** replaces name, description and variations only. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
+- Everything is validated on the server first: camelCase name unique in the division (across both kinds), a description, at least one variation, every required placeholder of the prompt's kind in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
+- **New prompts are saved disabled, private and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user to open CK (Generated ads → Image generators, with the Ad or Native filter matching the prompt's kind) to test it, enable it, share it or add affiliate/feed filters. The tool never changes those settings.
+- **Editing an own prompt** replaces name, description and variations only. It keeps its kind; `kind` is ignored on edit. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
 - **Public prompts of other divisions are read-only.** To build on one, save it as a new prompt of this division (no `promptId`) with a new name, and say that it's a copy.
 
 ### Editing an existing prompt
