@@ -1,6 +1,6 @@
 ---
 name: arbo-adplexity
-description: Use AdPlexity ads as inspiration for new titles. AdPlexity is an ad intelligence service; CK pulls from it, every day, Facebook image ads of other advertisers that send traffic to arbitrage (search feed / RSOC) networks such as Tonic, System1, Sedo or Predicto, so they are competitors running the same business. Explains what the data is and its filters, then finds the angles those advertisers keep running, checks them against this division and writes new titles (get_adplexity_overview, search_adplexity_ads, list_adplexity_pages, mark_adplexity_ads_used). Use when the user mentions AdPlexity, asks what arbitrage competitors or RSOC advertisers are running, wants title ideas or inspiration from AdPlexity or from other arbitrage advertisers, or asks which Facebook pages or sites are scaling arbitrage traffic.
+description: Use AdPlexity ads as inspiration for new titles. AdPlexity is an ad intelligence service; CK pulls from it, every day (and when someone captures searches in the browser), Facebook image ads of other advertisers that send traffic to arbitrage (search feed / RSOC) networks such as Tonic, System1, Sedo or Predicto, so they are competitors running the same business. Explains what the data is and its filters, then finds the angles those advertisers keep running, checks them against this division and writes new titles (get_adplexity_overview, search_adplexity_ads, list_adplexity_pages, mark_adplexity_ads_used). Use when the user mentions AdPlexity, asks what arbitrage competitors or RSOC advertisers are running, wants title ideas or inspiration from AdPlexity or from other arbitrage advertisers, or asks which Facebook pages or sites are scaling arbitrage traffic.
 ---
 
 # AdPlexity title inspiration
@@ -15,11 +15,17 @@ AdPlexity is a paid ad intelligence service. It crawls ads, follows them to thei
 
 ## What CK saves
 
-A daily CK task pulls from AdPlexity:
-- only **Facebook image ads** (no videos);
-- only ads on a **known arbitrage network** (ads AdPlexity could not attribute to a network are skipped);
-- only ads that had already been **running at least 3 days** when pulled;
-- **newest first**, stopping at the first ad already saved, within a **monthly AdPlexity credit budget** (about 1 credit per ad). So the store is a sample of the newest qualifying ads, not every ad on the market. `get_adplexity_overview` shows the budget and what was spent.
+Ads come in two ways:
+1. A daily CK task pulls from AdPlexity:
+   - only **Facebook image ads** (no videos);
+   - only ads on a **known arbitrage network** (ads AdPlexity could not attribute to a network are skipped);
+   - only ads that had already been **running at least 3 days** when pulled;
+   - **newest first**, stopping at the first ad already saved, within a **monthly AdPlexity credit budget** (about 1 credit per ad). `get_adplexity_overview` shows the budget and what was spent.
+2. People browsing AdPlexity search with a browser extension that captures every search result they see and sends it to CK. These ads follow the searches people ran (any filters), cost no credits, and have no landing page link of their own (their Facebook page's link is used when known).
+
+So the store is a sample of qualifying ads, not every ad on the market. Only image ads are kept. An ad already saved is never updated. **Ads are deleted 30 days after they were saved.**
+
+Shortly after an ad is saved, CK analyzes it: it reads the text written on the image (OCR), detects the language from all of the ad's text, and classifies its vertical from all of the ad's text. Until then `imageText`, `language` and `vertical` are empty; `get_adplexity_overview` shows how many ads still wait (`notAnalyzedAds`).
 
 Each saved ad has:
 
@@ -29,23 +35,35 @@ Each saved ad has:
 | `title` | the ad headline |
 | `description` | the ad primary text |
 | `caption` | the display link / domain shown on the ad |
+| `imageText` | the text written on the ad image, read by OCR. Usually the strongest inspiration of all fields (see below). Empty when the image has no text |
+| `language` | ISO 639-1 code (`EN`, `DE`) detected from the headline, primary text and image text together, not from the countries the ad runs in |
+| `vertical` | the topic, classified from all of the ad's text, as an exact **Coinis vertical name**: Auto, Beauty, Education, Employment, Finance, Health, Home Improvement, Law, Lifestyle, Miscellaneous, Real Estate, Services, Shopping, Technology, Travel. `Unknown` when the classifier was not sure |
 | `countries` | country codes where AdPlexity saw it |
 | `networks` | arbitrage networks detected on its landing page |
-| `daysRunning`, `firstSeen`, `lastSeen` | how long it has run, as of the pull |
-| `isActive` | whether the Facebook ad was still active at the pull |
+| `daysRunning`, `firstSeen` | how long it had run when saved, and when AdPlexity first saw it |
+| `isActive` | whether the Facebook ad was still active when saved |
 | `facebookPageId`, `facebookPageName` | the page that runs it |
 | `landingPageUrl` | the advertiser's article. Its path and query (slug, `adtitle=`) usually spell out the article title. Looked up once per Facebook page, so most ads carry their page's link (`linkFromPage: true`); a few have none yet |
 | `usedForTitles` | this division already used it (see step 6). Other divisions track their own |
 
-`daysRunning` is a snapshot from the day of the pull; ads are not refreshed later.
+`daysRunning` and `isActive` are a snapshot from the day the ad was saved; ads are not refreshed later.
+
+**Image text is the most important field, and it is not reliable.**
+- On arbitrage ads the text on the image is practically the title of the article the ad sends to: the headline and primary text are often short or generic, while the image carries the real hook. Weigh it above the headline and primary text when you look for angles and write titles.
+- It is machine-read (OCR), so it can be wrong: misread letters and words, words that are not on the image at all, random text picked from the background (signs, logos, product labels, watermarks), lines in the wrong order or cut in half.
+- Use it for the idea, never as exact wording. Trust it when it reads as a coherent sentence and agrees with the headline, primary text or landing page slug; ignore fragments that make no sense with the rest of the ad.
+
+The ad `vertical` is a Coinis vertical name, a fixed list shared by every division. It is **not** this division's vertical or theme (see below): use it to narrow the ads to a topic, then map each angle to this division's own vertical or theme yourself.
 
 ## Tools
 
-- `get_adplexity_overview`: totals, ads not yet used by this division, first-seen date range, ads per network and per country, credit budget. Call it first.
+- `get_adplexity_overview`: totals, ads not yet used by this division, first-seen date range, ads per network, per country, per vertical and per language, ads not analyzed yet, credit budget. Call it first.
 - `search_adplexity_ads`: the ads. Filters (all optional, combined with AND):
   - `countries`: any of the codes, e.g. `["US","GB"]`;
   - `networks`: any of the names, partial and case insensitive, e.g. `["Tonic"]`;
-  - `text`: searched in title, description, caption and page name;
+  - `text`: searched in title, description, image text, caption and page name;
+  - `languages`: any of the language codes, e.g. `["DE"]` (the ad's own language, a stronger signal than `countries` for which market the copy is written for);
+  - `verticals`: any of the Coinis vertical names, exact, e.g. `["Home Improvement", "Finance"]`;
   - `facebookPageId`: one page's ads;
   - `minDaysRunning`: only ads that ran at least N days;
   - `firstSeenInLastDays`: only recent ads;
@@ -69,17 +87,17 @@ If the `memory_*` tools are available (see the **arbo-memory** skill): at the st
 
 ## 1. Scope
 
-Ask (or take from the request) which countries, verticals or networks to look at. Default: the countries this division spends in (one stats query, see step 3) and `unusedOnly: true`.
+Ask (or take from the request) which countries, languages, verticals or networks to look at. Default: the countries this division spends in (one stats query, see step 3) and `unusedOnly: true`.
 
 ## 2. Find the angles
 
 1. `get_adplexity_overview` to see which networks and countries have data.
-2. `search_adplexity_ads` for the scope, `minDaysRunning: 5` or more and `orderBy: "longest"` first: ads that keep running are the ones paying. Then a `newest` pass for fresh angles.
+2. `search_adplexity_ads` for the scope, `minDaysRunning: 5` or more and `orderBy: "longest"` first: ads that keep running are the ones paying. Then a `newest` pass for fresh angles. For a topic, filter with `verticals` (Coinis names); for a market, combine `countries` with `languages`.
 3. Signals, strongest first:
    - **the same article or angle run as many ads, by several pages or in several countries;**
    - a page with many saved ads (`list_adplexity_pages`) is scaling: look at its ads;
    - high `daysRunning`, still `isActive`.
-4. For each angle note: the topic, the hook (what's replacing X, warning signs, how much it costs, what it may look like in 2027, a named city or public programme...), the markets, and what makes it concrete. Read the landing page slug: it is usually the article title behind the ad.
+4. For each angle note: the topic, the hook (what's replacing X, warning signs, how much it costs, what it may look like in 2027, a named city or public programme...), the markets, and what makes it concrete. Start from the `imageText`: it is usually the article title behind the ad, so it weighs more than the headline (skip it when it is garbled or random, see above). The landing page slug confirms it.
 5. Map each angle to the most specific vertical or theme of this division (`get_verticals`). Note angles that fit no vertical, and sub-topics that are being scaled inside a vertical but that none of its themes covers. Propose those separately (parent vertical, PascalCase name, one or two sentence description, evidence); create a theme only when the user explicitly asks.
 
 ## 3. Check against the division
