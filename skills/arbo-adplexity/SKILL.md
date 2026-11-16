@@ -93,7 +93,7 @@ Only bring angles we don't already run:
 Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectual property, production-ready language, years, self-check). These rules are absolute, even when the AdPlexity ad breaks them:
 - **Neutral third-party voice: no seller offers, no promises.** Every title is the headline of an independent informational article. We do not sell, ship, finance, book or provide anything. In any language, never:
   - speak as the seller or provider: "we", "our", "us", "my", "shop our", "we offer", "buy from us", "official sale";
-  - mention a condition only a seller can give: free delivery or shipping, installments, pay in X months, 0% financing, pay later, free returns, a warranty, promo codes, "in stock", free trial, "purchase conditions";
+  - mention a condition only a seller can give: free delivery or shipping, 0% financing, free returns, a warranty, promo codes, "in stock", free trial, "purchase conditions";
   - promise anything: guaranteed results or approval, savings, a price or availability the reader will get;
   - tell the reader to buy: "buy", "order", "shop", "book now", "apply now".
 
@@ -111,7 +111,7 @@ Show a table: #, vertical, country, title, English, source (adIds, page, days ru
 
 - **Default: recommendations.** `set_new_article_titles` with `referenceName: "claude-adplexity"`, unless the user names another reference. No money is spent; the automatic pipeline picks them up when the country × vertical performs.
 - **Generation only when the user explicitly asks** to launch / generate ads: `submit_titles_for_generation`. It creates real articles and adsets that spend budget: say so once, and follow arbo-title-creator step 7 (affiliate for every title from `get_affiliate_providers`, never guessed; tag suggested as `t:adplexity-YYYYMMDD`; budget, cap, account, image prompt and search query only if the user gives them). Show the final list with affiliate and tag and get a clear yes.
-- One invalid row rejects the whole batch: validate vertical names, country and language codes first. Fix skipped titles as their reason says and resubmit only after the user agrees.
+- One invalid row rejects the whole batch: validate vertical names, country and language codes first. Titles failing the banned-word, brand or length checks are inserted and listed with a reason: the article keeps the title, and the ad image and ad texts get a compliant rewrite on import. Still write compliant titles yourself.
 
 ## 6. Mark the source ads
 
