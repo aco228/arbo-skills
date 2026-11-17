@@ -1,13 +1,13 @@
 ---
 name: arbo-adplexity
-description: Use AdPlexity ads as inspiration for new titles. AdPlexity is an ad intelligence service; CK pulls from it, every day (and when someone captures searches in the browser), Facebook image ads of other advertisers that send traffic to arbitrage (search feed / RSOC) networks such as Tonic, System1, Sedo or Predicto, so they are competitors running the same business. Explains what the data is and its filters, then finds the angles those advertisers keep running, checks them against this division and writes new titles (get_adplexity_overview, search_adplexity_ads, list_adplexity_pages, mark_adplexity_ads_used). Use when the user mentions AdPlexity, asks what arbitrage competitors or RSOC advertisers are running, wants title ideas or inspiration from AdPlexity or from other arbitrage advertisers, or asks which Facebook pages or sites are scaling arbitrage traffic.
+description: Use AdPlexity ads as inspiration for new titles. AdPlexity is an ad intelligence service; CK pulls from it, every day (and when someone captures searches in the browser), Facebook image ads of other advertisers that send traffic to arbitrage (search feed / RSOC) networks such as Tonic, System1, Sedo or Predicto, so they are competitors running the same business. Also covers CK's own Facebook ad library scrape: image ads of competitor Facebook pages we follow, organized in scrape groups. Explains what the data is and its filters, then finds the angles those advertisers keep running, checks them against this division and writes new titles (get_adplexity_overview, search_adplexity_ads, list_adplexity_pages, mark_adplexity_ads_used, get_facebook_scrape_overview, search_facebook_scrape_ads, list_facebook_scrape_pages, mark_facebook_scrape_ads_used). Use when the user mentions AdPlexity, the Facebook ad library scrape, scrape groups or followed competitor pages, asks what arbitrage competitors or RSOC advertisers are running, wants title ideas or inspiration from AdPlexity or from other arbitrage advertisers, or asks which Facebook pages or sites are scaling arbitrage traffic.
 ---
 
 # AdPlexity title inspiration
 
-You read the AdPlexity ads that CK has saved, find the angles other arbitrage advertisers keep paying for, and turn them into new titles for this division.
+You read the competitor ads that CK has saved (from AdPlexity and from CK's own Facebook ad library scrape), find the angles other arbitrage advertisers keep paying for, and turn them into new titles for this division.
 
-**Needs:** the CK MCP tools. Nothing else: the tools read data CK has already saved, so they never call AdPlexity and cost no AdPlexity credits.
+**Needs:** the CK MCP tools. Nothing else: the tools read data CK has already saved, so they never call AdPlexity or Facebook and cost no AdPlexity credits.
 
 ## What AdPlexity is
 
@@ -58,6 +58,23 @@ Each saved ad has:
 
 The ad `vertical` is a Coinis vertical name, a fixed list shared by every division. It is **not** this division's vertical or theme (see below): use it to narrow the ads to a topic, then map each angle to this division's own vertical or theme yourself.
 
+## Second source: the Facebook ad library scrape
+
+CK also scrapes the public Facebook ad library itself, for competitor pages people chose to follow.
+- Pages are organized in **scrape groups**: a named competitor or competitor type (for example one arbitrage network's advertisers). A page belongs to one group only.
+- Each followed page is scraped about once a day at most, a few screens of its active ads, most-shown first. Pages whose last scrape found no new ads are scraped less often. A page with no active ads is paused (keeps its ads, not scraped).
+- People can also scrape a landing domain by hand: its ads come in, and unknown pages running them are added to the group.
+- Only **image ads** are kept (carousels keep the first card's image); video ads and product-catalog ads are skipped.
+- An ad is saved once, the first time it is seen, and never updated. Ads are kept until their page is disabled; there is no 30-day limit.
+- The image is copied when the ad is saved, then the same analysis as for AdPlexity runs: `imageText` (OCR), `language`, `vertical` (Coinis name). The image text rules above apply the same way.
+
+Differences from AdPlexity:
+- **No countries** and no arbitrage network per ad: use `language` for the market and the scrape group for the competitor.
+- `startDate` / `daysRunning` come from Facebook (when the ad started), `copies` is how many copies of the same ad Facebook groups together (many copies = the advertiser is scaling it).
+- `landingPageUrl` and `domain` are the ad's own link.
+
+Fields of a scraped ad: `adId` (Facebook ad library id), `title`, `body`, `caption`, `imageText`, `language`, `vertical`, `startDate`, `daysRunning`, `copies`, `savedDate`, `scrapeGroup`, `facebookPageId`, `facebookPageName`, `landingPageUrl`, `domain`, `imageUrl`, `usedForTitles`.
+
 ## Tools
 
 - `get_adplexity_overview`: totals, ads not yet used by this division, first-seen date range, ads per network, per country, per vertical and per language, ads not analyzed yet, credit budget. Call it first.
@@ -75,6 +92,23 @@ The ad `vertical` is a Coinis vertical name, a fixed list shared by every divisi
   - `maxResults` (default 50, max 200) and `skip` for paging.
 - `list_adplexity_pages`: Facebook pages by number of saved ads, with the site they send to. Filters: `text` (page name or site), `minAds`.
 - `mark_adplexity_ads_used`: marks ads as used by this division, with a note (reference or tag).
+
+Facebook ad library scrape:
+- `get_facebook_scrape_overview`: totals, ads not yet used by this division, saved date range, scrape groups (id, name, description, active and paused pages, ads), ads per vertical, per language and per landing domain, ads not analyzed yet. Call it first.
+- `search_facebook_scrape_ads`: the ads. Filters (all optional, combined with AND):
+  - `scrapeGroupIds`: any of the group ids from the overview;
+  - `text`: searched in title, body, image text, caption and page name;
+  - `languages`, `verticals`: as for AdPlexity;
+  - `facebookPageId`: one page's ads; `domain`: one landing domain;
+  - `minDaysRunning`: only ads running at least N days (from their start date);
+  - `savedInLastDays`: only recently saved ads;
+  - `unusedOnly`: skip ads this division already used;
+  - `orderBy`: `newest` (default), `longest` (earliest start first) or `copies` (most copies first);
+  - `maxResults` (default 50, max 200) and `skip` for paging.
+- `list_facebook_scrape_pages`: followed pages by number of saved ads, with group, status, last scrape and new ads found by it. Filters: `scrapeGroupId`, `text`, `minAds`, `includeInactive`.
+- `mark_facebook_scrape_ads_used`: marks scraped ads as used by this division, with a note. Ad ids of the two sources are different: mark each ad with the tool of its own source.
+
+All these tools only read (except the two mark tools, which only record usage). Adding pages, groups or domain scrapes is done by people in CK.
 
 Pull in pages of 50 to 100 and summarise; never dump hundreds of ads into the chat.
 
@@ -94,12 +128,13 @@ Ask (or take from the request) which countries, languages, verticals or networks
 
 ## 2. Find the angles
 
-1. `get_adplexity_overview` to see which networks and countries have data.
+1. `get_adplexity_overview` to see which networks and countries have data, and `get_facebook_scrape_overview` to see which scrape groups, languages and verticals have data. Use both sources unless the user names one.
 2. `search_adplexity_ads` for the scope, `minDaysRunning: 5` or more and `orderBy: "longest"` first: ads that keep running are the ones paying. Then a `newest` pass for fresh angles. For a topic, filter with `verticals` (Coinis names); for a market, combine `countries` with `languages`.
 3. Signals, strongest first:
    - **the same article or angle run as many ads, by several pages or in several countries;**
    - a page with many saved ads (`list_adplexity_pages`) is scaling: look at its ads;
-   - high `daysRunning`, still `isActive`.
+   - high `daysRunning`, still `isActive`;
+   - in the Facebook scrape: many `copies`, a long `daysRunning`, the same angle across pages of a group (`orderBy: "copies"` or `"longest"`).
 4. For each angle note: the topic, the hook (what's replacing X, warning signs, how much it costs, what it may look like in 2027, a named city or public programme...), the markets, and what makes it concrete. Start from the `imageText`: it is usually the article title behind the ad, so it weighs more than the headline (skip it when it is garbled or random, see above). The landing page slug confirms it.
 5. Map each angle to the most specific vertical or theme of this division (`get_verticals`). Note angles that fit no vertical, and sub-topics that are being scaled inside a vertical but that none of its themes covers. Propose those separately (parent vertical, PascalCase name, one or two sentence description, evidence); create a theme only when the user explicitly asks.
 
@@ -126,7 +161,7 @@ Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectu
 
 AdPlexity copy is evidence of the angle, never text to copy. Rewrite every title in your own words, localise it to the target country and language with real local values, and spread the set across verticals and countries.
 
-Show a table: #, vertical, country, title, English, source (adIds, page, days running). Let the user drop or change rows.
+Show a table: #, vertical, country, title, English, source (AdPlexity or Facebook scrape, adIds, page, days running). Let the user drop or change rows.
 
 ## 5. Submit (only on the user's explicit go)
 
@@ -136,4 +171,4 @@ Show a table: #, vertical, country, title, English, source (adIds, page, days ru
 
 ## 6. Mark the source ads
 
-Right after a successful submit, call `mark_adplexity_ads_used` with the adIds behind the accepted titles (leave out skipped ones) and a note with the reference or tag. Later runs with `unusedOnly: true` then bring only new material. Marking is per division; it never hides ads from other divisions.
+Right after a successful submit, call `mark_adplexity_ads_used` (AdPlexity ads) and `mark_facebook_scrape_ads_used` (scraped ads) with the adIds behind the accepted titles (leave out skipped ones) and a note with the reference or tag. Later runs with `unusedOnly: true` then bring only new material. Marking is per division; it never hides ads from other divisions.
