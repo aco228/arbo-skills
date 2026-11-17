@@ -23,6 +23,8 @@ Ads come in two ways:
    - **newest first**, stopping at the first ad already saved, within a **monthly AdPlexity credit budget** (about 1 credit per ad). `get_adplexity_overview` shows the budget and what was spent.
 2. People browsing AdPlexity search with a browser extension that captures every search result they see and sends it to CK. These ads follow the searches people ran (any filters), cost no credits, and have no landing page link of their own (their Facebook page's link is used when known).
 
+Ads whose caption (display link) is just facebook.com are skipped in both ways and deleted if already saved: they have no real destination to learn from.
+
 So the store is a sample of qualifying ads, not every ad on the market. Only image ads are kept. An ad already saved is never updated. **Ads are deleted 30 days after they were saved.**
 
 Shortly after an ad is saved, CK analyzes it: it reads the text written on the image (OCR), detects the language from all of the ad's text, and classifies its vertical from all of the ad's text. Until then `imageText`, `language` and `vertical` are empty; `get_adplexity_overview` shows how many ads still wait (`notAnalyzedAds`).
