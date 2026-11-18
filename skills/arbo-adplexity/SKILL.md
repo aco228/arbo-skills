@@ -46,6 +46,7 @@ Each saved ad has:
 | `isActive` | whether the Facebook ad was still active when saved |
 | `facebookPageId`, `facebookPageName` | the page that runs it |
 | `landingPageUrl` | the advertiser's article. Its path and query (slug, `adtitle=`) usually spell out the article title. Looked up once per Facebook page, so most ads carry their page's link (`linkFromPage: true`); a few have none yet |
+| `imageUrl` | link of the ad image, only when the search passes `includeImageUrls: true` (our stored copy once the ad is analyzed, AdPlexity's link before that) |
 | `usedForTitles` | this division already used it (see step 6). Other divisions track their own |
 
 `daysRunning` and `isActive` are a snapshot from the day the ad was saved; ads are not refreshed later.
@@ -57,6 +58,35 @@ Each saved ad has:
 - Use it for the idea, never as exact wording. Trust it when it reads as a coherent sentence and agrees with the headline, primary text or landing page slug; ignore fragments that make no sense with the rest of the ad.
 
 The ad `vertical` is a Coinis vertical name, a fixed list shared by every division. It is **not** this division's vertical or theme (see below): use it to narrow the ads to a topic, then map each angle to this division's own vertical or theme yourself.
+
+### The ad verticals (both sources)
+
+Every ad of both sources gets one of these, picked by an AI classifier from all of the ad's text (headline, primary text, caption, image text) by what the person who clicks ultimately wants: an ad about SUV models is Auto, about a trip is Travel, about dental implants is Health.
+
+| Vertical | Covers |
+|---|---|
+| Auto | cars and vehicles: new or used cars, SUVs, trucks, EVs, motorcycles, models, prices, leasing, parts, maintenance |
+| Beauty | beauty and fashion: cosmetics, skincare, hair, makeup, clothes, shoes, fashion trends, beauty treatments |
+| Education | schools, universities, degrees, online courses, certifications, scholarships, studying abroad, language learning |
+| Employment | jobs, careers, wages and salaries, hiring, job types, where to apply, work abroad |
+| Finance | loans, credit cards, banking, insurance, investing, crypto, mortgages as a financial product, debt, taxes, pensions |
+| Health | medical treatments, hospitals, clinics, doctors, dental, medications, therapies, conditions, senior care, hearing, vision |
+| Home Improvement | renovation, solar panels, roofing, windows, heating, DIY, furniture, appliances, gardening, contractors |
+| Law | laws and regulations, legal rights, lawyers, lawsuits, claims, compensation, immigration law |
+| Lifestyle | fitness, yoga, coaching, hobbies, food, dating, pets, wellness, leisure activities |
+| Real Estate | homes and apartments for sale or rent, property prices, neighbourhoods, housing markets |
+| Services | local or online services: cleaning, moving, repairs, internet and phone plans, delivery, storage, pest control |
+| Shopping | products to buy, consumer goods, electronics as purchases, online shopping, product comparisons, marketplaces |
+| Technology | software, apps, gadgets, phones, computers, AI tools, internet, cybersecurity, tech how-tos |
+| Travel | destinations, trips, holidays, cruises, flights, hotels, tours, tickets, travel packages |
+| Miscellaneous | nothing else clearly fits |
+| Unknown | the classifier's top pick was too weak to trust |
+
+How to use them:
+- Neighbours overlap (Services / Home Improvement, Finance / Real Estate for mortgages, Shopping / Technology for gadgets). When a topic sits on a border, filter with both verticals, or use `text` instead.
+- `Unknown` and `Miscellaneous` ads are not junk: search them with `text` when a topic doesn't fit the list.
+- An ad is classified once, shortly after it is saved, and never re-classified.
+- Map to this division: a division vertical or theme (`get_verticals`, for example `Sale` or `Jobs`) is the division's own topic and has no Coinis name in the tool output. Pick the one or two ad verticals that cover it by the table above (e.g. a `Jobs` vertical ⇒ `Employment`; a `Solar` theme ⇒ `Home Improvement`), and narrow further with `text` when the theme is a small part of the vertical.
 
 ## Second source: the Facebook ad library scrape
 
@@ -73,7 +103,7 @@ Differences from AdPlexity:
 - `startDate` / `daysRunning` come from Facebook (when the ad started), `copies` is how many copies of the same ad Facebook groups together (many copies = the advertiser is scaling it).
 - `landingPageUrl` and `domain` are the ad's own link.
 
-Fields of a scraped ad: `adId` (Facebook ad library id), `title`, `body`, `caption`, `imageText`, `language`, `vertical`, `startDate`, `daysRunning`, `copies`, `savedDate`, `scrapeGroup`, `facebookPageId`, `facebookPageName`, `landingPageUrl`, `domain`, `imageUrl`, `usedForTitles`.
+Fields of a scraped ad: `adId` (Facebook ad library id), `title`, `body`, `caption`, `imageText`, `language`, `vertical`, `startDate`, `daysRunning`, `copies`, `savedDate`, `scrapeGroup`, `facebookPageId`, `facebookPageName`, `landingPageUrl`, `domain`, `imageUrl` (only with `includeImageUrls: true`, our stored copy), `usedForTitles`.
 
 ## Tools
 
@@ -89,7 +119,8 @@ Fields of a scraped ad: `adId` (Facebook ad library id), `title`, `body`, `capti
   - `firstSeenInLastDays`: only recent ads;
   - `unusedOnly`: skip ads this division already used;
   - `orderBy`: `newest` (default) or `longest`;
-  - `maxResults` (default 50, max 200) and `skip` for paging.
+  - `maxResults` (default 50, max 200) and `skip` for paging;
+  - `includeImageUrls`: `true` adds `imageUrl` to every ad. Off by default to keep results small; turn it on only when the images will be looked at (for example as references for an image prompt).
 - `list_adplexity_pages`: Facebook pages by number of saved ads, with the site they send to. Filters: `text` (page name or site), `minAds`.
 - `mark_adplexity_ads_used`: marks ads as used by this division, with a note (reference or tag).
 
@@ -104,7 +135,8 @@ Facebook ad library scrape:
   - `savedInLastDays`: only recently saved ads;
   - `unusedOnly`: skip ads this division already used;
   - `orderBy`: `newest` (default), `longest` (earliest start first) or `copies` (most copies first);
-  - `maxResults` (default 50, max 200) and `skip` for paging.
+  - `maxResults` (default 50, max 200) and `skip` for paging;
+  - `includeImageUrls`: as for AdPlexity.
 - `list_facebook_scrape_pages`: followed pages by number of saved ads, with group, status, last scrape and new ads found by it. Filters: `scrapeGroupId`, `text`, `minAds`, `includeInactive`.
 - `mark_facebook_scrape_ads_used`: marks scraped ads as used by this division, with a note. Ad ids of the two sources are different: mark each ad with the tool of its own source.
 
