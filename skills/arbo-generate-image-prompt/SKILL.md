@@ -51,10 +51,11 @@ Facts about the values that the prompt must survive:
 A base prompt is a **template reused for literally every title**. The same text renders "Used SUVs in Germany", "Warehouse jobs near you", "Dental implants cost", "Volunteering abroad" and anything else. You never know the topic when writing the prompt, and the prompt must never assume one.
 
 - **Never hardcode an actor or subject.** No specific person type (a woman, an older man, a nurse, a family), profession, age, gender, ethnicity, object, product, vehicle, animal, place, season or scene. Refer to **roles** only: "the topic's main subject", "a person relevant to the topic, when one fits naturally", "an object or scene that represents the topic".
-- **Everything subject-specific comes from the placeholders.** The model decides what to show from `{{PRIMARY_TEXT}}`, `{{Anchor}}` and `{{article_description}}`. The prompt decides how it looks: layout, style, hierarchy, palette logic.
+- **Everything subject-specific comes from the placeholders.** The model decides what to show from `{{PRIMARY_TEXT}}`, `{{Anchor}}` and `{{article_description}}`. The prompt decides the vibe: style, mood, hierarchy, the kind of composition and the colour mood. The exact arrangement and colours are left to the model, composed from each topic.
 - **People are optional, never required.** Many topics have no natural person. Write "when a person fits the topic" instead of "show a person".
 - **References are the main trap.** A reference showing a smiling woman next to a red car must become "a cleanly cut-out hero subject relevant to the topic", not "a woman next to a car". Keep the treatment (cut-out, framing, lighting, expression energy) and drop the identity of the subject.
-- **Vertical-oriented styles are still generic.** Even when a prompt is meant mainly for one vertical (e.g. `saleV1`), don't write the vertical into it. Targeting prompts to verticals is done later with filters in CK, not with prompt text. Style elements that only suit some topics must be conditional ("if the description lists several items, ...").
+- **Default prompts stay generic.** A default prompt (no vertical, no theme) is used for every topic: don't write a vertical into it, and make style elements that only suit some topics conditional ("if the description lists several items, ...").
+- **Scoped prompts may lean on their topic, not on one subject.** A prompt saved for a vertical or a theme is used only for that vertical's or theme's ads, so it may use that topic's visual world (typical settings, mood, kinds of objects). It still serves many different titles there: subjects still come from the placeholders, never one hardcoded person, product, brand or scene.
 - **Structural elements must degrade gracefully.** Rows, tiles, chips and numbers only appear when the sources support them. The prompt says what to do when they don't.
 
 ## The DNK: required prompt structure
@@ -161,28 +162,35 @@ You may leave out a rule only when the user explicitly asks, and you must warn t
 
 ## Translating a look into a prompt
 
+### Vibe, not a blueprint (hard rule)
+A prompt that pins exact colours and positions renders the same image for every title: the feed sees one repeated creative, it fatigues fast, and it looks templated. Capture the **whole vibe, essence and DNK** of the look, and let the model compose each image from the context it gets (headline, description, anchor, strategy).
+- **Colours as mood, never exact.** "warm, muted tones with one vivid accent", "high contrast, dark and dramatic", "soft, airy, light". Never hex codes, never named colour pairs ("coral on off-white", "navy and gold"), never "the background is blue".
+- **Composition as approach, never coordinates.** "headline-led, the headline clearly dominates", "one hero subject with generous breathing room", "dense, energetic, several small elements". Never "headline in the top half", "subject on the right", "footer band at the bottom", "2×2 grid".
+- **Keep what makes the look recognisable**: archetype, energy, subject treatment (cut-out, full-bleed photo, illustration, 3D), typography character, lighting, texture, density, recurring motifs described by their role.
+- A fixed position or colour is allowed only when it is the identity of the style itself and the user asks for it. Say so in the design notes.
+
 ### From a description
 Pin down, asking only about what's missing and genuinely changes the result:
 - **Ad archetype**: editorial magazine ad, bold poster, infographic or comparison, clean product-category shot with a headline, illustrated or flat design, photographic lifestyle scene, minimal typographic.
-- **Layout**: where the headline sits, the hero subject, any supporting module (a list, 2×2 tiles, chips, a footer band).
-- **Visual language**: palette logic (for example "pale neutral background with one or two strong accent colours"), typography style (condensed, extra-bold sans, serif editorial), photo or illustration or 3D, lighting, depth.
+- **Composition approach**: what leads (headline or image), how much breathing room, whether there is a supporting module (a short list, tiles, chips) and when it appears. Not where things sit.
+- **Visual language**: colour mood (for example "calm, light background feel with one strong accent"), typography character (condensed, extra-bold sans, serif editorial), photo or illustration or 3D, lighting, depth.
 - **Density**: how much supporting text and how many elements.
 
-Defaults if the user doesn't specify: one hero subject, the headline in the top half, low density.
+Defaults if the user doesn't specify: one hero subject, the headline clearly dominant, low density.
 
-The layout must work at any aspect ratio (square and portrait): describe positions relative to the canvas (top half, left side, centered), never fixed grids that only fit one shape.
+The composition must work at any aspect ratio (square and portrait), which is one more reason to describe the approach and leave the arrangement to the model.
 
 ### From reference images
-- Describe what you see in design terms: grid, headline position and size ratio, subject treatment (cut-out, full-bleed photo, illustration), palette logic, typography class, recurring motifs, density.
-- Extract the **design logic**, never the content. Don't copy brand names, logos, product designs, trademarked characters, real people's faces, or the reference's text.
-- Palettes become generic descriptions ("warm coral accent on off-white"), never "the brand's colours".
+- Describe what you see as a vibe: archetype, mood and energy, how dominant the headline is, subject treatment (cut-out, full-bleed photo, illustration), colour mood, typography character, recurring motifs, density. Don't transcribe the reference's exact layout or colours (see "Vibe, not a blueprint").
+- Extract the **design logic**, never the content. Don't copy brand names, logos, product designs, trademarked characters, real people's faces, or the reference's text into the prompt. (The reference's headline is still used as the test text, see "Saved prompts".)
+- Colours become a mood ("warm and muted with one vivid accent"), never specific colours and never "the brand's colours".
 - Call out anything in the references that breaks the rules above (CTA buttons, prices not from the source, logos, fake UI, "limited offer" badges, personal-attribute callouts). Tell the user you're leaving it out, or replacing it with a compliant equivalent.
 - With several references, find the common denominator. Ask when they disagree in a way that matters.
 
 ### Writing the design sections
 - Describe **the look**, not a specific image or subject (see "One prompt, every topic"). "A cleanly cut-out hero subject relevant to the topic" is good; "a red SUV" or "a smiling young woman" is not.
 - Make every structural element **conditional on the sources**. For example: "If the description doesn't provide enough items for multiple entries, use fewer entries or visual-only tiles. Never fabricate content to fill the layout."
-- Be concrete about hierarchy: headline first, then hero, then secondary module.
+- Be concrete about hierarchy (headline first, then hero, then secondary module), not about positions or colours.
 - Say what to avoid for this style (generic stock-photo look, cluttered collage, dense flyer, presentation slide).
 
 ## Quality and performance review (always do this before showing)
@@ -198,13 +206,14 @@ A bad prompt costs money: confused images get low CTR, and borderline ones get l
 7. **Placeholders.** All required placeholders are present, spelled exactly, with no unknown ones.
 8. **Compliance complete.** Every block from "Mandatory compliance rules" is present, and the BRANDS (STRICT) block is right after CONTEXT, word for word. Mentally run the prompt with a headline that names a retailer and a product brand (e.g. "Goodyear Tires on Clearance at Walmart"): nothing in the design sections may invite a storefront, sign, product label or brand colours.
 9. **Tight writing.** Every sentence carries a needed instruction (see "Be concise"). Cut explanations, repeated rules and filler adjectives, not design detail the look depends on.
-10. **Plain instructions.** Direct, imperative, unambiguous English. No hype words ("stunning", "viral", "insane CTR"), no emojis, no markdown tables inside the prompt, and no talking to the user inside the prompt.
+10. **Vibe, not a blueprint.** No hex codes, named colours, colour pairs, fixed positions ("top half", "left side", "bottom band") or fixed grids. Mentally render it for five titles: they should look like one family, not one image with different text.
+11. **Plain instructions.** Direct, imperative, unambiguous English. No hype words ("stunning", "viral", "insane CTR"), no emojis, no markdown tables inside the prompt, and no talking to the user inside the prompt.
 
 ## Variations
 
 A variation is the **same prompt with the same structure, rules and design logic**, varied only in design parameters to add randomness across ads:
-- the palette or accent colour family
-- headline placement (top, or left-aligned over negative space) within what the design allows
+- the colour mood (warmer or cooler, muted or vivid)
+- how much the headline dominates versus the image
 - hero framing (cut-out, close crop, environmental)
 - the accent motif (ribbons, panels, dividers, arrows)
 - the background treatment (flat pale, soft gradient, subtle texture)
@@ -219,7 +228,7 @@ Rules for variations:
 ## Naming
 
 - **Name**: a very short camelCase identifier used to recognise the prompt in lists and stats, e.g. `default`, `editorialV1`, `saleV1`, `comparePoster`, `flatIllustration`. Letters and digits only, starting lowercase, at most about 20 characters. Suggest one, and when you iterate on the same design, bump the version (`saleV2`). The name is stored on every adset it generates (`ImagePromptName` in stats, `null` for the default prompt), so a new version is tracked separately and renaming a prompt splits its history.
-- **Description**: 1–3 sentences in plain English describing the look, the layout and when it fits, e.g. "Bold editorial poster: headline in the top half over a pale background, one cut-out hero subject, a small localized search tag under the headline. Works for most verticals; best for product-category topics."
+- **Description**: 1–3 sentences in plain English describing the look, the layout and when it fits, e.g. "Bold editorial poster: a dominant headline over a calm, airy background, one cut-out hero subject, a small localized search tag near the headline. Works for most verticals; best for product-category topics."
 
 ## Native prompts (Taboola, popIn)
 
@@ -277,13 +286,16 @@ Search first (`memory_search`) and update or supersede an existing entry instead
 
 ## Workflow
 
-0. **Know what exists.** When the user starts a new prompt, call `list_image_prompts` to see the names and descriptions already in use (own and public). Don't propose a name that is taken, and mention a similar existing prompt if there is one. When the user refers to an existing prompt ("improve saleV1", "make a warmer version of default"), load it with `get_image_prompt` and work from its variations.
+0. **Know what exists.** When the user starts a new prompt, call `list_image_prompts` to see the names and descriptions already in use (pass `vertical` or `theme` to see the prompts of one scope). Don't propose a name that is taken, and mention a similar existing prompt if there is one. When the user refers to an existing prompt ("improve saleV1", "make a warmer version of default"), load it with `get_image_prompt` and work from its variations.
    - **Check how it performs.** When improving or replacing a prompt, or when the user asks which prompts work, run a stat query (arbo-stat-queries skill) grouped by `ImagePromptName` (`null` = default) for CTR, ROI and profit, and use what wins and loses to guide the design.
-1. **Understand the look.** Read the description and/or study the references. Summarise the design you understood in a few bullets (archetype, layout, visual language, density), plus any rule-breaking elements you'll drop. Ask only the questions that really change the result.
+1. **Understand the look.** Read the description and/or study the references. Summarise the vibe you understood in a few bullets (archetype, mood, composition approach, visual language, density), plus any rule-breaking elements you'll drop. Ask only the questions that really change the result.
+   - **Suggest a theme.** Call `get_verticals` and propose the theme (or vertical) the look fits best, so it is used for those ads only: what the references are about, or what the user describes. Suggest a default prompt (no theme) only when the look really suits any topic. The user decides.
+   - **Reference text.** Note the text for the test image: with reference images, the headline (and what the ad is about) taken from them, verbatim; without references, a realistic headline and 1–2 sentence description for the suggested theme.
 2. **Draft.** Write the full prompt following the DNK, the compliance rules and the design sections.
 3. **Review.** Run the quality and performance review and fix everything silently.
 4. **Present**, in this order:
    - `Name` and `Description`
+   - suggested scope (theme, vertical or default) and the reference title and description for the test image
    - the full prompt in a single fenced code block, with no commentary inside it
    - variations, if requested, each in its own code block labelled `Variation 2`, `Variation 3`, and so on (the base prompt is Variation 1)
    - a few bullets on the key design decisions and anything from the references you deliberately left out for compliance
@@ -304,28 +316,37 @@ The user may ask for a **test prompt** to try the base prompt in an image genera
 
 ## Saved prompts (CK MCP)
 
-- `list_image_prompts(nameContains?, kind?)`: id, name, kind (`Ad` or `Native`) and description of the division's own prompts and public prompts of other divisions. `kind` narrows the list to one kind. `IsOwn` says which ones this division can change.
-- `get_image_prompt(promptId)`: one prompt with its kind, all its variations and its state (`IsEnabled`, `IsPublic`) set by people in CK.
+- `list_image_prompts(nameContains?, kind?, vertical?, theme?)`: id, name, kind (`Ad` or `Native`), scope (`Vertical`, `Theme`), enabled state and description of the division's prompts. `kind` narrows to one kind; `vertical` is `default` (default prompts only), a top-level vertical name (its prompts without theme) or `all`; `theme` is a theme name.
+- `get_image_prompt(promptId)`: one prompt with its kind, scope, reference text, all its variations, its test image links (`TestImages`) and its enabled state set by people in CK.
+
+Scope (which ads a prompt is used for):
+- **Default** (no vertical, no theme): can be used for any ad.
+- **Theme**: used only for ads of that theme. Prompts of its vertical or its parent theme are never used for it.
+- **Vertical**: used only for ads of that vertical that have no theme.
+- An ad uses its theme's (or, without theme, its vertical's) enabled prompts mixed with the enabled default prompts. When that theme or vertical is set in CK to use only its own prompts and has enabled ones, only those are used. With no enabled own prompts, the default prompts are used.
+- Vertical and theme names come from `get_verticals` (`isTopLevel=false` entries are themes).
 
 What the state means:
 - **Enabled**: image generation picks the prompt automatically for new ads (among the prompts that fit the article).
 - **Disabled**: the prompt is kept but never picked automatically. It is still used when someone names it explicitly, e.g. `imagePromptName` in `submit_titles_for_generation`. That is how a new prompt is tried on real ads before it is enabled.
 - Affiliate/feed filters and auto rotation are set by people in CK and are not shown by the tools. A filtered prompt with auto rotation off is exclusive: articles of its affiliate/feed use only such prompts and skip the generic ones.
-- `save_image_prompt(name, description, variations, promptId?, kind?)`: creates a prompt (no `promptId`; `kind` is `Ad` by default, pass `Native` for a native prompt) or replaces name, description and variations of an own prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
+- `save_image_prompt(name, description, variations, promptId?, kind?, referenceTitle?, referenceDescription?, vertical?, theme?)`: creates a prompt (no `promptId`; `kind` is `Ad` by default, pass `Native` for a native prompt) or replaces name, description, reference text, scope and variations of a prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
+  - `referenceTitle` and `referenceDescription`: **mandatory on every save**, including edits. They are the text printed on the test image, so a person sees at a glance what the prompt is about. When the prompt was made from reference images, use the text from those images (the headline verbatim, plus 1–2 sentences on what the ad is about). Without references, write a realistic headline and description for the prompt's theme or vertical.
+  - `theme` scopes the prompt to a theme (its vertical is set automatically; pass `vertical` too only when the theme name exists in several verticals). `vertical` alone scopes it to that vertical. Omit both for a default prompt. On edit, omitted scope stays as it is; `vertical: "default"` turns it back into a default prompt.
 
 ### Submit (only on explicit approval)
 
 Never call `save_image_prompt` until the user clearly says to submit or save.
 1. Ask how many variations to save, if not said yet (see "Variations").
 2. Run the quality review on every variation.
-3. Show exactly what will be saved: name, description, every variation in its own code block, and whether it's a new prompt or an edit of an existing one (with its name).
+3. Show exactly what will be saved: name, description, scope (default, vertical or theme), reference title and description, every variation in its own code block, and whether it's a new prompt or an edit of an existing one (with its name).
 4. Call `save_image_prompt`. Pass arrays as real JSON arrays, not as a JSON string.
 
 Tool behaviour to know:
-- Everything is validated on the server first: camelCase name unique in the division (across both kinds), a description, at least one variation, every required placeholder of the prompt's kind in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
-- **New prompts are saved disabled, private and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user to open CK (Generated ads → Image generators, with the Ad or Native filter matching the prompt's kind) to test it, enable it, share it or add affiliate/feed filters. The tool never changes those settings.
-- **Editing an own prompt** replaces name, description and variations only. It keeps its kind; `kind` is ignored on edit. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
-- **Public prompts of other divisions are read-only.** To build on one, save it as a new prompt of this division (no `promptId`) with a new name, and say that it's a copy.
+- Everything is validated on the server first: camelCase name unique in the division (across both kinds and all scopes), a description, reference title and description, an existing vertical/theme, at least one variation, every required placeholder of the prompt's kind in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
+- **Every save queues one test image** in the background: the first variation filled with the reference text. It shows up in `get_image_prompt` `TestImages` and on the prompt in CK within a few minutes. Give the user that, don't wait for it.
+- **New prompts are saved disabled and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user where to test and enable it in CK: default prompts under Generated ads → Image generators; vertical or theme prompts on that vertical's or theme's page → Image prompts (with the Ad or Native filter matching the prompt's kind). The tool never changes enabled state, filters or the "use only own image prompts" setting.
+- **Editing a prompt** replaces name, description, reference text, scope and variations only. It keeps its kind; `kind` is ignored on edit. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
 
 ### Editing an existing prompt
 
