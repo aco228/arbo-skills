@@ -318,7 +318,7 @@ The user may ask for a **test prompt** to try the base prompt in an image genera
 ## Saved prompts (CK MCP)
 
 - `list_image_prompts(nameContains?, kind?, vertical?, theme?)`: id, name, kind (`Ad` or `Native`), scope (`Vertical`, `Theme`), enabled state and description of the division's prompts. `kind` narrows to one kind; `vertical` is `default` (default prompts only), a top-level vertical name (its prompts without theme) or `all`; `theme` is a theme name.
-- `get_image_prompt(promptId)`: one prompt with its kind, scope, reference text, all its variations, its test image links (`TestImages`) and its enabled state set by people in CK.
+- `get_image_prompt(promptId)`: one prompt with its kind, scope, reference text, all its variations, its test image links (`TestImages`) and its enabled state.
 
 Scope (which ads a prompt is used for):
 - **Default** (no vertical, no theme): can be used for any ad.
@@ -331,9 +331,12 @@ What the state means:
 - **Enabled**: image generation picks the prompt automatically for new ads (among the prompts that fit the article).
 - **Disabled**: the prompt is kept but never picked automatically. It is still used when someone names it explicitly, e.g. `imagePromptName` in `submit_titles_for_generation`. That is how a new prompt is tried on real ads before it is enabled.
 - Affiliate/feed filters and auto rotation are set by people in CK and are not shown by the tools. A filtered prompt with auto rotation off is exclusive: articles of its affiliate/feed use only such prompts and skip the generic ones.
-- `save_image_prompt(name, description, variations, promptId?, kind?, referenceTitle?, referenceDescription?, vertical?, theme?)`: creates a prompt (no `promptId`; `kind` is `Ad` by default, pass `Native` for a native prompt) or replaces name, description, reference text, scope and variations of a prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
+- `save_image_prompt(name, description, variations, referenceTitle, referenceDescription, promptId?, kind?, vertical?, theme?, isEnabled?)`: creates a prompt (no `promptId`; `kind` is `Ad` by default, pass `Native` for a native prompt) or replaces name, description, reference text, scope and variations of a prompt (with `promptId`). `variations` is the complete list of full prompt texts: on edit, send all of them, including unchanged ones, because the list is replaced as a whole.
   - `referenceTitle` and `referenceDescription`: **mandatory on every save**, including edits. They are the text printed on the test image, so a person sees at a glance what the prompt is about. When the prompt was made from reference images, use the text from those images (the headline verbatim, plus 1–2 sentences on what the ad is about). Without references, write a realistic headline and description for the prompt's theme or vertical.
   - `theme` scopes the prompt to a theme (its vertical is set automatically; pass `vertical` too only when the theme name exists in several verticals). `vertical` alone scopes it to that vertical. Omit both for a default prompt. On edit, omitted scope stays as it is; `vertical: "default"` turns it back into a default prompt.
+
+- `set_image_prompts_enabled(promptIds, isEnabled)`: enables or disables up to 200 prompts at once. Only when the user asks. A disabled prompt is kept and can still be named explicitly.
+- `delete_image_prompts(promptIds)`: permanently deletes up to 200 prompts with their test images. Only when the user explicitly asks to delete them: list the names and get a clear yes first, and suggest disabling when they only want a prompt out of rotation. Ads already made keep their images, and stats keep the prompt name.
 
 ### Submit (only on explicit approval)
 
@@ -346,8 +349,8 @@ Never call `save_image_prompt` until the user clearly says to submit or save.
 Tool behaviour to know:
 - Everything is validated on the server first: camelCase name unique in the division (across both kinds and all scopes), a description, reference title and description, an existing vertical/theme, at least one variation, every required placeholder of the prompt's kind in every variation, no unknown `{{...}}` placeholders. On any error **nothing is saved** and `Errors` lists the problems. Fix them and call again.
 - **Every save queues one test image** in the background: the first variation filled with the reference text. It shows up in `get_image_prompt` `TestImages` and on the prompt in CK within a few minutes. Give the user that, don't wait for it.
-- **New prompts are saved disabled and without filters.** They are not picked automatically, but can be used right away by naming them (`imagePromptName`). Tell the user where to test and enable it in CK: default prompts under Generated ads → Image generators; vertical or theme prompts on that vertical's or theme's page → Image prompts (with the Ad or Native filter matching the prompt's kind). The tool never changes enabled state, filters or the "use only own image prompts" setting.
-- **Editing a prompt** replaces name, description, reference text, scope and variations only. It keeps its kind; `kind` is ignored on edit. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
+- **New prompts are saved enabled and without filters** (`isEnabled` defaults to `true`), so they go into rotation for new ads in their scope right away. Pass `isEnabled: false` only when the user asks for disabled prompts (for example to try them first by naming them in `imagePromptName`). Tell the user where to see them in CK: default prompts under Generated ads → Image generators; vertical or theme prompts on that vertical's or theme's page → Image prompts (with the Ad or Native filter matching the prompt's kind). Filters and the "use only own image prompts" setting are set by people in CK only.
+- **Editing a prompt** replaces name, description, reference text, scope and variations, and keeps the enabled state unless `isEnabled` is passed. It keeps its kind; `kind` is ignored on edit. New ads use the change right away: automatically picked ones if the prompt is enabled, and any that name it explicitly.
 
 ### Editing an existing prompt
 
