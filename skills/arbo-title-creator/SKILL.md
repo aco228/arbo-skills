@@ -142,15 +142,18 @@ For every candidate, check:
 
 Drop or fix failures silently. Don't show broken candidates.
 
-### Primary text (optional, only when the user asks for it)
+### Primary text (optional, only from one scraped ad)
 
-By default the title is used for everything: the article is written for it and it is the text on the ad image. When the user asks for a separate text on the image, give each title a `PrimaryText` and `PrimaryTextInEnglish` as well:
+By default the title is used for everything: the article is written for it and it is the text on the ad image. A separate `PrimaryText` (with `PrimaryTextInEnglish`) for the image is written only when the user asks for it **and** the title is inspired directly by one specific ad from the ad library (the Facebook ad library scrape or AdPlexity, see arbo-adplexity and arbo-competitor-scout). Without such a source ad, leave both out. Hard rules for the pair:
+- **One source ad.** `Title` is written from that ad's headline (from its body only when it has no headline). `PrimaryText` is written from the text on the same ad's image. Never combine the headline of one ad with the image text of another.
 - `Title` is the headline of the article the reader lands on. The article, its search query and the ad headline below the image are written from it.
 - `PrimaryText` is the text shown on the ad image: the hook that makes the reader click through to that exact article.
-- They are one pair about exactly the same subject. `PrimaryText` never mentions a topic, product, place, number or claim the article would not cover, and it says something different from the title instead of repeating it.
+- **They must never differ in subject**: same topic, same product or service, same place. `PrimaryText` never mentions a topic, product, place, number or claim the article would not cover. Read the primary text and then the title: it must feel like one ad leading to one article. It says something different from the title instead of repeating it.
+- When the source ad has no text on its image, or its image hook doesn't fit the title's subject, leave the primary text out. Never invent a hook the ad doesn't have.
 - `PrimaryText` follows every hard rule above, exactly like the title (neutral voice, no seller offers, no promises, no call to buy, no names, no demographic targeting).
 - `PrimaryTextInEnglish` is a faithful translation of that exact `PrimaryText`. Give both or neither: one without the other rejects the batch.
 - Leave both out when the user did not ask for them. Without them, the title is the text on the image.
+- Self-check every pair before showing it: same source ad, same subject, both pass the hard rules. When only the primary text fails, drop the primary text; when the title fails, drop the pair.
 
 The server checks `PrimaryText` for banned words and brands the same way as a title: when it fails, the image gets a compliant rewrite of it on import.
 

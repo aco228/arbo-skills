@@ -99,7 +99,13 @@ Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectu
 
 Competitor copy is evidence of the angle, never text to copy. Localise to the target country with real local values, and spread the set across verticals and countries.
 
-**Separate primary text (only when the user asks for it).** Then each title gets a `PrimaryText` too, following the "Primary text" section of arbo-title-creator: the title is based on the ad's headline, the primary text on the text in its image (or its body when the image has no text). Both come from the same ad and are about exactly the same subject. Competitor image text is full of seller offers, prices and calls to buy: keep only the hook, under the same hard rules as the title. Add a primary text column (native and English) to the table.
+**Separate primary text (only when the user asks for it).** Then each title gets a `PrimaryText` (with `PrimaryTextInEnglish`) for the ad image. Follow the "Primary text" section of arbo-title-creator. These are hard rules:
+- **Both from one ad.** The title is written from that ad's headline (from its body only when it has no headline), the primary text from the text on the same ad's image. Never combine texts of different ads. Keep the source ad id with every pair.
+- **They must never differ in subject**: same topic, product or service, and place. The primary text never mentions anything the article named by the title would not cover. Read the primary text and then the title: one ad leading to one article.
+- The ad has no text on its image, or the image hook doesn't fit the title: leave the primary text empty (the title then goes on the image). Never invent a hook.
+- Image texts are full of seller offers, prices and calls to buy: keep only the hook, under the same hard rules as the title. Never copy it word for word.
+
+Add a primary text column (native and English) to the table.
 
 Save the batch to `drafts/YYYY-MM-DD-<name>.json` in the data folder before showing it:
 ```json
