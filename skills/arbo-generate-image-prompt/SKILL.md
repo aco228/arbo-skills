@@ -30,9 +30,9 @@ Write them exactly like this, case-sensitive, with double curly braces:
 
 | Placeholder | Filled with | Required |
 |---|---|---|
-| `{{PRIMARY_TEXT}}` | The ad headline, in the target language. The only big text in the image. | **Yes** |
+| `{{PRIMARY_TEXT}}` | The text on the ad image, in the target language: the article title, or a separate primary text written for the image (a hook about the same subject). The only big text in the image. | **Yes** |
 | `{{LanguageName}}` | The language name in English (e.g. `German`). | **Yes** |
-| `{{Anchor}}` | The article's topic or keyword phrase (may be in the target language). Used to understand the subject. | **Yes** |
+| `{{Anchor}}` | The article's topic or keyword phrase (may be in the target language). Used to understand the subject. When the image shows a separate primary text, this is the article title, so the image must fit both. | **Yes** |
 | `{{article_description}}` | A 2–3 sentence neutral summary of the article, in the target language. | **Yes** |
 | `{{Strategy}}` | Free-text creative direction for the campaign, written by a media buyer. | **Yes** |
 | `{{CountryName}}` | The first target country's English name. | Optional |

@@ -142,9 +142,21 @@ For every candidate, check:
 
 Drop or fix failures silently. Don't show broken candidates.
 
+### Primary text (optional, only when the user asks for it)
+
+By default the title is used for everything: the article is written for it and it is the text on the ad image. When the user asks for a separate text on the image, give each title a `PrimaryText` and `PrimaryTextInEnglish` as well:
+- `Title` is the headline of the article the reader lands on. The article, its search query and the ad headline below the image are written from it.
+- `PrimaryText` is the text shown on the ad image: the hook that makes the reader click through to that exact article.
+- They are one pair about exactly the same subject. `PrimaryText` never mentions a topic, product, place, number or claim the article would not cover, and it says something different from the title instead of repeating it.
+- `PrimaryText` follows every hard rule above, exactly like the title (neutral voice, no seller offers, no promises, no call to buy, no names, no demographic targeting).
+- `PrimaryTextInEnglish` is a faithful translation of that exact `PrimaryText`. Give both or neither: one without the other rejects the batch.
+- Leave both out when the user did not ask for them. Without them, the title is the text on the image.
+
+The server checks `PrimaryText` for banned words and brands the same way as a title: when it fails, the image gets a compliant rewrite of it on import.
+
 ### 5. Present and iterate
 
-Show a numbered table: `#`, native `Title`, `TitleInEnglish`, and a few words on which winner or idea it comes from. Then let the user steer: "more like 3", "drop 5 and 7", "same for DE", "less generic". Keep a running list of **approved** titles across turns, and different countries or verticals can be mixed in it.
+Show a numbered table: `#`, native `Title`, `TitleInEnglish` (plus `PrimaryText` and its English when the user asked for them), and a few words on which winner or idea it comes from. Then let the user steer: "more like 3", "drop 5 and 7", "same for DE", "less generic". Keep a running list of **approved** titles across turns, and different countries or verticals can be mixed in it.
 
 ### 6. Submit as recommendations (only on explicit approval)
 
@@ -154,6 +166,8 @@ Payload per title:
 ```json
 { "Vertical": "<exact name from get_verticals>", "CountryCode": "DE", "LanguageCode": "de", "Title": "<native>", "TitleInEnglish": "<english>" }
 ```
+
+Add `"PrimaryText": "<native>", "PrimaryTextInEnglish": "<english>"` only when the user asked for a separate text on the image (see "Primary text" above).
 
 Tool behaviour to know:
 - **One invalid row rejects the whole batch.** An unknown country, language or vertical, an empty title, or a duplicate title in the batch returns an error and nothing is inserted. Validate everything first. On an error, fix the row and resubmit.
@@ -183,7 +197,7 @@ Requirements, all from the conversation, never invented:
 
 Depending on the division settings, submitted titles are either sent to generation right away or (partly, e.g. over a daily limit) kept on the **Titles for review** page until the user submits them there. The reply says how many went where. Since you can't know in advance, treat the submit as a launch.
 
-Before calling, show the exact final list (vertical, country, language, title, English, affiliate, budget and cap if set), the account and search query for any title that has one, the tag, whether unsafe titles are allowed when set, and the count, and ask the user to confirm. Call only after a clear yes.
+Before calling, show the exact final list (vertical, country, language, title, English, primary text and its English if set, affiliate, budget and cap if set), the account and search query for any title that has one, the tag, whether unsafe titles are allowed when set, and the count, and ask the user to confirm. Call only after a clear yes.
 
 Payload:
 ```json
@@ -195,7 +209,7 @@ Payload:
 }
 ```
 
-Add `"AccountName": "<exact name from get_traffic_accounts>"` to a title only when the user named the account for it, and `"SearchQuery": "<keyword>"` only when the user gave a query for it.
+Add `"AccountName": "<exact name from get_traffic_accounts>"` to a title only when the user named the account for it, `"SearchQuery": "<keyword>"` only when the user gave a query for it, and `"PrimaryText"` with `"PrimaryTextInEnglish"` only when the user asked for a separate text on the image (see "Primary text" above).
 
 Tool behaviour to know:
 - **All or nothing.** Any invalid title (unknown vertical, country, language, affiliate not in the division, unknown account or account type not matching the affiliate, duplicate, budget or cap over the limit) rejects the whole batch, and the reply lists every error. Fix those rows and resubmit the whole batch. Banned words and brand names do not fail the batch: Titles are no longer rejected for banned words, brand names or length: the article is always written for the title as given, and when a title fails the ad policy check, the ad image and ad texts get a compliant rewrite made on import that stays as close to it as possible (a brand becomes a generic reference such as "a discount supermarket", a banned word a softer one, a long title gets shorter). The ad description is always rewritten into a compliant ad version. Still write compliant titles yourself: a rewritten ad no longer shows your exact wording.

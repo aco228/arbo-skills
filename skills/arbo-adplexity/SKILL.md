@@ -193,12 +193,15 @@ Follow **all** rules of the **arbo-title-creator** skill (hard rules, intellectu
 
 AdPlexity copy is evidence of the angle, never text to copy. Rewrite every title in your own words, localise it to the target country and language with real local values, and spread the set across verticals and countries.
 
+**Separate primary text (only when the user asks for it).** Then each title gets a `PrimaryText` too, following the "Primary text" section of arbo-title-creator: the title is based on the ad's headline (`title`), the primary text on the text in its image (`imageText`, or its body when the image has no text). Both come from the same ad and are about exactly the same subject. Competitor image text is full of seller offers, prices and calls to buy: keep only the hook, under the same hard rules as the title. Add a primary text column (native and English) to the table.
+
 Show a table: #, vertical, country, title, English, source (AdPlexity or Facebook scrape, adIds, page, days running). Let the user drop or change rows.
 
 ## 5. Submit (only on the user's explicit go)
 
 - **Default: recommendations.** `set_new_article_titles` with `referenceName: "claude-adplexity"`, unless the user names another reference. No money is spent; the automatic pipeline picks them up when the country × vertical performs.
 - **Generation only when the user explicitly asks** to launch / generate ads: `submit_titles_for_generation`. It creates real articles and adsets that spend budget: say so once, and follow arbo-title-creator step 7 (affiliate for every title from `get_affiliate_providers`, never guessed; tag suggested as `t:adplexity-YYYYMMDD`; budget, cap, account, image prompt and search query only if the user gives them). Show the final list with affiliate and tag and get a clear yes.
+- With a separate primary text, pass `PrimaryText` and `PrimaryTextInEnglish` on each title in either tool (both or neither).
 - One invalid row rejects the whole batch: validate vertical names, country and language codes first. Titles failing the banned-word, brand or length checks are inserted and listed with a reason: the article keeps the title, and the ad image and ad texts get a compliant rewrite on import. Still write compliant titles yourself.
 
 ## 6. Mark the source ads
