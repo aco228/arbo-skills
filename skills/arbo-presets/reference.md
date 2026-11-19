@@ -276,6 +276,9 @@ A comparator with an empty condition (or `"0"` on non-D comparators) doesn't fil
 **ArticleSimilarTitle** — asks for `NumberOfTitles` similar article titles per offer.
 - Values: `TitleReference` (default `stats-similar-title`), `NumberOfTitles` (2).
 
+**ArticleTermsRescan** — asks for one rescan of the related-search terms shown on the article page, per article (several adsets of one article give one request, and an article with a rescan still pending is skipped). Works only for articles on FLW and MiraSearch feeds; others are rejected by the rescan task. The result (terms present or gone, last scan time, note) shows on the article page.
+- Values: none.
+
 ### Not available in presets
 
 These need a value typed per adset in the UI, so a preset could never change anything with them. The tools reject them:
